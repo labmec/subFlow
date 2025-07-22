@@ -1,0 +1,8 @@
+
+*.DS_Store
+build
+.vscode
+.idea
+.vs
+Common/imrs_config.h
+LOG

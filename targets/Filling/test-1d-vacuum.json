@@ -1,0 +1,85 @@
+{
+    "Mesh": "test-1d-vacuum.msh",
+    
+    "Domains": [
+    {
+        "name": "dom",
+        "dimension": 2,
+        "matid": 1,
+        "K": 1, // [m^2]
+        "phi": 0.3
+    }
+    ],
+    "Boundary": [
+        {
+            "name": "bottom",
+            "matid": 2,
+            "type": 1, // imposed flux
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 1.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "diffusor",
+            "matid": 3,
+            "type": 1,  // imposed flux
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 1.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "lid",
+            "matid": 4,
+            "type": 0, // imposed pressure
+            "value": -10.0, // [Pa]
+            "functionID": 0,
+            "ExternalSaturation": 1.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "sandscreen",
+            "matid": 5,
+            "type": 1, // imposed flux
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 1.0,
+            "SaturationFunctionID": 0
+        }
+    ],
+
+    "Numerics":
+        {
+            "RunWithTransport": true,
+            "DeltaT": 0.01,
+            "NSteps": 1000,
+            "Gravity": [0.0, 0.0, 0.0], // [m/s^2]
+            "IsLinearTrace": false
+        },
+    "FluidProperties":
+    {
+        "WaterDensity": 1, //[kg/m^3]
+        "WaterViscosity": 0.001, // Pa.s
+        "WaterCompressibility": 0.0,
+        "OilDensity": 0.01, //[kg/m^3]
+        "OilViscosity": 0.01, // Pa.s
+        "OilCompressibility": 0.001, // [Pa^-1]
+        "DensityModel": 0, // 0: Linear, 1: Exponential
+        "ReferencePressure": 0.0 // [Pa]
+    },
+    "PetroPhysics":
+    {
+        "KrModel": 0, // 0: Linear, 1: Quadratic, 2: Quadratic with residual saturation
+        "Swr": 0.2, // Residual water saturation
+        "Sor": 0.2 // Residual oil saturation
+    },
+    "ReservoirProperties":
+    {
+        "s0":
+        {
+            "functionType": 0,
+            "value": 0.0
+        }
+    }
+}

@@ -1,0 +1,85 @@
+{
+    "Mesh": "test-1d-mathematica.msh",
+    
+    "Domains": [
+    {
+        "name": "dom",
+        "dimension": 2,
+        "matid":1,
+        "K": 0.0000183,
+        "phi": 0.3
+    }
+    ],
+    "Boundary": [
+        {
+            "name": "bcl",
+            "matid": 2,
+            "type": 1, // imposed flux
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 0.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "bcr",
+            "matid": 3,
+            "type": 1,  // imposed flux
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 0.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "bct",
+            "matid": 4,
+            "type": 0, // imposed pressure
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 0.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "bcb",
+            "matid": 5,
+            "type": 1, // imposed flux
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 0.0,
+            "SaturationFunctionID": 0
+        }
+        
+    ],
+
+    "Numerics":
+        {
+            "RunWithTransport": true,
+            "DeltaT": 0.0001,
+            "NSteps": 5000,
+            "Gravity": [0.0, -9.81, 0.0],
+            "IsLinearTrace": false
+        },
+    "FluidProperties":
+    {
+        "WaterDensity": 1000.0,
+        "WaterViscosity": 0.001,
+        "WaterCompressibility": 0,
+        "OilDensity": 1.25,
+        "OilViscosity": 0.0000183,
+        "OilCompressibility": 0,
+        "DensityModel": 0 // 0: Linear, 1: Exponential
+    },
+    "PetroPhysics":
+    {
+        "KrModel": 2, // 0: Linear, 1: Quadratic, 2: Quadratic with residual saturation
+        "Swr": 0.2, // Residual water saturation
+        "Sor": 0.2 // Residual oil saturation
+    },
+    "ReservoirProperties":
+    {
+        "s0":
+        {
+            "functionType": 1,
+            "value": 0.0
+        }
+    }
+}

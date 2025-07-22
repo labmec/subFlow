@@ -1,0 +1,95 @@
+{
+    "Mesh": "module.msh",
+    
+    "Domains": [
+    {
+        "name": "dom",
+        "dimension": 2,
+        "matid":1,
+        "K": 4.934615e-7,
+        "phi": 0.35
+    }
+    ],
+    "Boundary": [
+        {
+            "name": "sandscreen",
+            "matid": 6,
+            "type": 0, // imposed pressure
+            "value": 4.314926e7,
+            "functionID": 0,
+            "ExternalSaturation": 1.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "diffusor",
+            "matid": 3,
+            "type": 0,  // imposed pressure
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 0.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "lid",
+            "matid": 5,
+            "type": 1, // imposed flux
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 0.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "bottom",
+            "matid": 2,
+            "type": 1, // imposed flux
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 0.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "gap",
+            "matid": 4,
+            "type": 1, // imposed flux
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 0.0,
+            "SaturationFunctionID": 0
+        }
+        
+    ],
+
+    "Numerics":
+        {
+            "RunWithTransport": true,
+            "DeltaT": 0.025,
+            "NSteps": 80000,
+            "Gravity": [0.0, -9810.0, 0.0],
+            "IsLinearTrace": false,
+            "IsAxisymmetric": true
+        },
+    "FluidProperties":
+    {
+        "WaterDensity": 1.0e-6,
+        "WaterViscosity": 1.0,
+        "WaterCompressibility": 0,
+        "OilDensity": 1.225e-9,
+        "OilViscosity": 0.01837,
+        "OilCompressibility": 0,
+        "DensityModel": 0 // 0: Linear, 1: Exponential
+    },
+    "PetroPhysics":
+    {
+        "KrModel": 0, // 0: Linear, 1: Quadratic, 2: Quadratic with residual saturation
+        "Swr": 0.2, // Residual water saturation
+        "Sor": 0.2 // Residual oil saturation
+    },
+    "ReservoirProperties":
+    {
+        "s0":
+        {
+            "functionType": 0,
+            "value": 0.0 //This is used to apply a constant initial saturation different from 0.0
+        }
+    }
+}
