@@ -1,0 +1,10 @@
+# Generic C/C++ .gitignore
+
+# Build directory (explicitly ignored)
+build/
+
+# IDEs and editors
+.vscode/
+
+# Misc
+.DS_Store
