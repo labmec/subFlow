@@ -2,6 +2,7 @@
 #include "DarcyFlow/TPZDarcyFlow.h"
 #include "DarcyFlow/TPZMixedDarcyFlow.h"
 #include "TPZAnalyticSolution.h"
+#include "TPZEquationFilter.h"
 #include "TPZGenGrid2D.h"
 #include "TPZGenGrid3D.h"
 #include "TPZHDivApproxCreator.h"
@@ -20,7 +21,6 @@
 #include "pzstepsolver.h"
 #include "pzvec_extras.h"
 #include <iostream>
-#include "TPZEquationFilter.h"
 
 // ================
 // Global variables
@@ -42,10 +42,6 @@ enum EnumMatIds {
 
 int nthreads = 0;
 
-auto SetBoundaryCondition = [](TPZVec<REAL> x, TPZVec<REAL> u, TPZFMatrix<REAL> &du) {
-  u[0] = x[1];
-};
-
 // Creates a geometric mesh using TPZGenGrid3D
 TPZGeoMesh *createGeoMesh3D(const TPZManVector<int, 3> &nelDiv, const TPZManVector<REAL, 3> &minX, const TPZManVector<REAL, 3> &maxX);
 
@@ -60,6 +56,8 @@ void SolveLinear(int order, TPZGeoMesh *gmesh);
 void SolveNonLinear(int order, TPZGeoMesh *gmesh);
 
 void ApplyEquationFilter(TPZGeoMesh *gmesh, TPZCompMesh *cmesh_m, TPZStructMatrixT<STATE> &stmat);
+
+void ApplyInitialConditions(TPZGeoMesh *gmesh, TPZCompMesh *cmesh_m);
 
 int main(int argc, char *const argv[]) {
 
@@ -79,7 +77,7 @@ int main(int argc, char *const argv[]) {
 
   // Initial geometric mesh
   bool isNL = true; // Non-linear flag
-  TPZGeoMesh *gmesh = createGeoMesh3D({3, 3, 3}, {0., 0., 0.}, {1., 1., 1.});
+  TPZGeoMesh *gmesh = createGeoMesh3D({3, 3, 3}, {-1., -1., -1.}, {1., 1., 1.});
   // TPZGeoMesh* gmesh = createGeoMesh2D({3, 3}, {0., 0.}, {1., 1.});
 
   if (isNL) {
@@ -126,7 +124,7 @@ TPZMultiphysicsCompMesh *createCompMeshMixed(TPZGeoMesh *gmesh, int order, bool 
   TPZHDivApproxCreator hdivCreator(gmesh);
   hdivCreator.ProbType() = ProblemType::EDarcy;
   hdivCreator.SetDefaultOrder(order);
-  hdivCreator.SetShouldCondense(true);
+  hdivCreator.SetShouldCondense(false);
 
   // Add materials (weak formulation)
   TPZMixedDarcyFlow *matDarcy = nullptr;
@@ -153,8 +151,8 @@ TPZMultiphysicsCompMesh *createCompMeshMixed(TPZGeoMesh *gmesh, int order, bool 
   bcond = matDarcy->CreateBC(matDarcy, EFront, 0, val1, val2);
   hdivCreator.InsertMaterialObject(bcond);
 
-  val2[0] = 1.;
-  bcond = matDarcy->CreateBC(matDarcy, EBack, 0, val1, val2);
+  val2[0] = -1.;
+  bcond = matDarcy->CreateBC(matDarcy, EBack, 1, val1, val2);
   hdivCreator.InsertMaterialObject(bcond);
 
   if (gmesh->Dimension() == 3) {
@@ -192,18 +190,22 @@ void SolveNonLinear(int order, TPZGeoMesh *gmesh) {
   TPZFStructMatrix<STATE> matMixed(cmeshMixed);
 #endif
   matMixed.SetNumThreads(nthreads);
+  ApplyInitialConditions(gmesh, cmeshMixed);
   ApplyEquationFilter(gmesh, cmeshMixed, matMixed);
   anMixed.SetStructuralMatrix(matMixed);
+  auto neq = matMixed.NReducedEquations();
+  auto cmesh_neq = cmeshMixed->NEquations();
   TPZStepSolver<STATE> stepMixed;
   stepMixed.SetDirect(ELDLt);
   anMixed.SetSolver(stepMixed);
 
   const int maxIter = 10;
   const REAL tol = 1.e-6;
-  TPZFMatrix<STATE> Sol(cmeshMixed->NEquations(), 1, 0.);
+  TPZFMatrix<STATE> Sol(cmeshMixed->Solution());
   for (int iteration = 0; iteration < maxIter; iteration++) {
     std::cout << "Non-linear iteration " << iteration << std::endl;
     anMixed.Assemble();
+
     // check convergence
     if (iteration > 0) {
       TPZMatrix<STATE> &rhs = anMixed.Rhs();
@@ -219,7 +221,7 @@ void SolveNonLinear(int order, TPZGeoMesh *gmesh) {
       }
     }
     anMixed.Solve();
-    TPZMatrix<STATE> &dsol = anMixed.Solution();
+    TPZFMatrix<STATE> &dsol = anMixed.Solution();
     Sol += dsol;
     // anMixed.LoadSolution(Sol);
     cmeshMixed->LoadSolution(Sol);
@@ -273,41 +275,74 @@ void SolveLinear(int order, TPZGeoMesh *gmesh) {
   delete cmeshMixed;
 }
 
-void ApplyEquationFilter(TPZGeoMesh *gmesh, TPZCompMesh *cmesh_m, TPZStructMatrixT<STATE> &strmat)
-{
-    std::set<int64_t> removeConnectSeq;
-    std::set<int64_t> removeEquations;
+void ApplyEquationFilter(TPZGeoMesh *gmesh, TPZCompMesh *cmesh_m, TPZStructMatrixT<STATE> &strmat) {
+  std::set<int64_t> removeEquations;
 
-    cmesh_m->LoadReferences();
-    
-    for (auto el : gmesh->ElementVec())
-    {        
-        int elMatID = el->MaterialId();
-        
-        if (elMatID != ERight && elMatID != ELeft && elMatID != EBottom && elMatID != ETop)
-            continue;
+  cmesh_m->LoadReferences();
 
-        TPZCompEl *compEl = el->Reference();
-        
-        int64_t nConnects = compEl->NConnects();
-        
-        if (nConnects != 1)
-            DebugStop();
-        
-        removeConnectSeq.insert(compEl->Connect(0).SequenceNumber());
+  TPZFMatrix<STATE> sol = cmesh_m->Solution();
+  for (auto el : gmesh->ElementVec()) {
+    int elMatID = el->MaterialId();
+
+    if (elMatID != ERight && elMatID != ELeft && elMatID != EBottom && elMatID != ETop && elMatID != EBack)
+      continue;
+
+    TPZCompEl *compEl = el->Reference();
+
+    int64_t nConnects = compEl->NConnects();
+
+    if (nConnects != 1)
+      DebugStop();
+
+    int64_t seq = compEl->Connect(0).SequenceNumber();
+    int ncorner = el->NCornerNodes();
+
+    auto firstEq = cmesh_m->Block().Position(seq);
+
+    int64_t blockSize = cmesh_m->Block().Size(seq);
+
+    for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++) {
+      removeEquations.insert(eq);
     }
-    
-    for (auto blockNumber : removeConnectSeq)
-    {
-        auto firstEq = cmesh_m->Block().Position(blockNumber);
-        
-        int64_t blockSize = cmesh_m->Block().Size(blockNumber);
-        
-        for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++)
-            removeEquations.insert(eq);
-    }
+  }
 
-    TPZEquationFilter filter(cmesh_m->NEquations());
-    filter.ExcludeEquations(removeEquations);
-    strmat.EquationFilter() = filter;
+  TPZEquationFilter filter(cmesh_m->NEquations());
+  filter.ExcludeEquations(removeEquations);
+  strmat.EquationFilter() = filter;
+}
+
+void ApplyInitialConditions(TPZGeoMesh *gmesh, TPZCompMesh *cmesh_m) {
+  cmesh_m->LoadReferences();
+
+  TPZFMatrix<STATE> sol = cmesh_m->Solution();
+  for (auto el : gmesh->ElementVec()) {
+    int elMatID = el->MaterialId();
+
+    if (elMatID != ERight && elMatID != ELeft && elMatID != EBottom && elMatID != ETop && elMatID != EBack)
+      continue;
+
+    TPZCompEl *compEl = el->Reference();
+
+    int64_t nConnects = compEl->NConnects();
+
+    if (nConnects != 1)
+      DebugStop();
+
+    int64_t seq = compEl->Connect(0).SequenceNumber();
+    int ncorner = el->NCornerNodes();
+    REAL volume = el->Volume();
+
+    auto firstEq = cmesh_m->Block().Position(seq);
+
+    int64_t blockSize = cmesh_m->Block().Size(seq);
+
+    for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++) {
+      REAL val = elMatID == EBack ? -1.0 * volume / ncorner : 0.0; // WHY we need to divide by ncorner?
+      if (eq - firstEq < ncorner)
+        sol.PutVal(eq, 0, val);
+    }
+  }
+
+  cmesh_m->LoadSolution(sol);
+  cmesh_m->TransferMultiphysicsSolution();
 }
