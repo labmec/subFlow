@@ -20,6 +20,7 @@
 #include "pzstepsolver.h"
 #include "pzvec_extras.h"
 #include <iostream>
+#include "TPZEquationFilter.h"
 
 // ================
 // Global variables
@@ -57,6 +58,8 @@ TPZMultiphysicsCompMesh *createCompMeshMixed(TPZGeoMesh *gmesh, int order = 1, b
 void SolveLinear(int order, TPZGeoMesh *gmesh);
 
 void SolveNonLinear(int order, TPZGeoMesh *gmesh);
+
+void ApplyEquationFilter(TPZGeoMesh *gmesh, TPZCompMesh *cmesh_m, TPZStructMatrixT<STATE> &stmat);
 
 int main(int argc, char *const argv[]) {
 
@@ -150,8 +153,8 @@ TPZMultiphysicsCompMesh *createCompMeshMixed(TPZGeoMesh *gmesh, int order, bool 
   bcond = matDarcy->CreateBC(matDarcy, EFront, 0, val1, val2);
   hdivCreator.InsertMaterialObject(bcond);
 
-  val2[0] = -1.;
-  bcond = matDarcy->CreateBC(matDarcy, EBack, 1, val1, val2);
+  val2[0] = 1.;
+  bcond = matDarcy->CreateBC(matDarcy, EBack, 0, val1, val2);
   hdivCreator.InsertMaterialObject(bcond);
 
   if (gmesh->Dimension() == 3) {
@@ -189,6 +192,7 @@ void SolveNonLinear(int order, TPZGeoMesh *gmesh) {
   TPZFStructMatrix<STATE> matMixed(cmeshMixed);
 #endif
   matMixed.SetNumThreads(nthreads);
+  ApplyEquationFilter(gmesh, cmeshMixed, matMixed);
   anMixed.SetStructuralMatrix(matMixed);
   TPZStepSolver<STATE> stepMixed;
   stepMixed.SetDirect(ELDLt);
@@ -267,4 +271,43 @@ void SolveLinear(int order, TPZGeoMesh *gmesh) {
   // --- Clean up ---
 
   delete cmeshMixed;
+}
+
+void ApplyEquationFilter(TPZGeoMesh *gmesh, TPZCompMesh *cmesh_m, TPZStructMatrixT<STATE> &strmat)
+{
+    std::set<int64_t> removeConnectSeq;
+    std::set<int64_t> removeEquations;
+
+    cmesh_m->LoadReferences();
+    
+    for (auto el : gmesh->ElementVec())
+    {        
+        int elMatID = el->MaterialId();
+        
+        if (elMatID != ERight && elMatID != ELeft && elMatID != EBottom && elMatID != ETop)
+            continue;
+
+        TPZCompEl *compEl = el->Reference();
+        
+        int64_t nConnects = compEl->NConnects();
+        
+        if (nConnects != 1)
+            DebugStop();
+        
+        removeConnectSeq.insert(compEl->Connect(0).SequenceNumber());
+    }
+    
+    for (auto blockNumber : removeConnectSeq)
+    {
+        auto firstEq = cmesh_m->Block().Position(blockNumber);
+        
+        int64_t blockSize = cmesh_m->Block().Size(blockNumber);
+        
+        for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++)
+            removeEquations.insert(eq);
+    }
+
+    TPZEquationFilter filter(cmesh_m->NEquations());
+    filter.ExcludeEquations(removeEquations);
+    strmat.EquationFilter() = filter;
 }

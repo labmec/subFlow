@@ -180,13 +180,13 @@ void TSFMixedDarcy::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
     break;
 
   case 1: // Neumann condition
-    for (int i = 0; i < nPhiU; i++) {
-      ef(i, 0) += bigNumber * (v2 - Usol[0]) * phiU(i, 0) * weight;
-      for (int j = 0; j < nPhiU; j++) {
+    // for (int i = 0; i < nPhiU; i++) {
+    //   ef(i, 0) += bigNumber * (v2 - Usol[0]) * phiU(i, 0) * weight;
+    //   for (int j = 0; j < nPhiU; j++) {
 
-        ek(i, j) += bigNumber * phiU(i, 0) * phiU(j, 0) * weight;
-      }
-    }
+    //     ek(i, j) += bigNumber * phiU(i, 0) * phiU(j, 0) * weight;
+    //   }
+    // }
     break;
   }
 }

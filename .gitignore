@@ -3,6 +3,9 @@
 # Build directory (explicitly ignored)
 build/
 
+# directory config file
+src/dirs_config.h
+
 # IDEs and editors
 .vscode/
 
