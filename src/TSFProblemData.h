@@ -7,8 +7,10 @@
 #include "Material/TPZMatTypes.h"
 #include "TPZStream.h"
 #include "TSFSavable.h"
+#include "json.hpp"
 #include "pzmanvector.h"
 #include "pzstack.h"
+#include <fstream>
 #include <map>
 #include <stdio.h>
 #include <tuple>
@@ -29,6 +31,9 @@ public:
 
   /// Destructor
   ~TSFProblemData();
+
+  /// Fill data from a JSON file
+  void ReadJSONFile(std::string filename);
 
   /// Write object state
   void Write(TPZStream &buf, int withclassid) const;
@@ -456,7 +461,7 @@ public:
 
     MSpaceType fSpaceType = ENone;
 
-    std::vector<REAL> fGravity;
+    TPZManVector<REAL, 3> fGravity;
 
     int fNThreadsDarcyProblem = 0;
 
@@ -477,7 +482,7 @@ public:
       fIsAxisymmetric = false;
       fIsLinearTrace = true;
       fSpaceType = ENone;
-      fGravity.resize(3, 0.0);
+      fGravity.Resize(3, 0.0);
       fNThreadsDarcyProblem = 0;
       fMortarBorderElementPresOrder = 0;
       fMortarBorderElementFluxOrder = 0;
