@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Material/TPZMatTypes.h"
+#include "TPZStream.h"
 #include "TSFSavable.h"
 #include "pzmanvector.h"
 #include "pzstack.h"
@@ -18,7 +19,7 @@ public:
   /// Default constructor
   TSFProblemData();
 
-  std::string mSimulationName = "";
+  std::string fSimulationName = "";
 
   /// Copy constructor
   TSFProblemData(const TSFProblemData &other);
@@ -46,30 +47,30 @@ public:
     /** @brief
      Contains the  name and material for elements of a certain dimension.
      */
-    std::map<std::string, int> mDomainNameAndMatId;
+    std::map<std::string, int> fDomainNameAndMatId;
 
     /** @brief
      MaterialID of the interface element that will be inserted in the transport mesh
      */
-    int mInterface_material_id = 100; // Interface material Volumetric-Volumetric
+    int fInterface_material_id = 100; // Interface material Volumetric-Volumetric
 
     // definition of the standard material ids
     /// material id for the Macro fluxes
-    int m_skeletonMatId = 19;
+    int fSkeletonMatId = 19;
     /// material id for H(div) wrap materials
-    int m_HdivWrapMatId = 15;
+    int fHdivWrapMatId = 15;
     /// material id for the mortar pressure space
-    int m_MortarMatId = 20;
+    int fMortarMatId = 20;
     /// material id for a positive lagrange multiplier interface
-    int m_posLagrangeMatId = 30;
+    int fPosLagrangeMatId = 30;
     /// material id for a negative lagrange multiplier interface
-    int m_negLagrangeMatId = 35;
+    int fNegLagrangeMatId = 35;
     /// material id for a zero order H(div) boundary flux
-    int m_zeroOrderHdivFluxMatId = 40;
+    int fZeroOrderHdivFluxMatId = 40;
     /// material id for pressure lagrange multiplier (same as mortar because they should not be in the same mesh)
-    int m_pressureMatId = 20;
+    int fPressureMatId = 20;
 
-    std::string mGmeshFileName = "";
+    std::string fGmeshFileName = "";
 
     /** @brief Default constructor */
     TGeometry() {}
@@ -79,46 +80,46 @@ public:
 
     /** @brief Copy constructor */
     TGeometry(const TGeometry &other) {
-      mDomainNameAndMatId = other.mDomainNameAndMatId;
-      mInterface_material_id = other.mInterface_material_id;
+      fDomainNameAndMatId = other.fDomainNameAndMatId;
+      fInterface_material_id = other.fInterface_material_id;
 
-      m_pressureMatId = other.m_pressureMatId;
+      fPressureMatId = other.fPressureMatId;
       /// material id for the Macro fluxes
-      m_skeletonMatId = other.m_skeletonMatId;
+      fSkeletonMatId = other.fSkeletonMatId;
       /// material id for H(div) wrap materials
-      m_HdivWrapMatId = other.m_HdivWrapMatId;
+      fHdivWrapMatId = other.fHdivWrapMatId;
       /// material id for the mortar pressure space
-      m_MortarMatId = other.m_MortarMatId;
+      fMortarMatId = other.fMortarMatId;
       /// material id for a positive lagrange multiplier interface
-      m_posLagrangeMatId = other.m_posLagrangeMatId;
+      fPosLagrangeMatId = other.fPosLagrangeMatId;
       /// material id for a negative lagrange multiplier interface
-      m_negLagrangeMatId = other.m_negLagrangeMatId;
+      fNegLagrangeMatId = other.fNegLagrangeMatId;
       /// material id for a zero order H(div) boundary flux
-      m_zeroOrderHdivFluxMatId = other.m_zeroOrderHdivFluxMatId;
+      fZeroOrderHdivFluxMatId = other.fZeroOrderHdivFluxMatId;
 
-      mGmeshFileName = other.mGmeshFileName;
+      fGmeshFileName = other.fGmeshFileName;
     }
     /** @brief Copy assignment operator*/
     TGeometry &operator=(const TGeometry &other) {
       if (this != &other) // prevent self-assignment
       {
-        mDomainNameAndMatId = other.mDomainNameAndMatId;
-        mInterface_material_id = other.mInterface_material_id;
-        m_pressureMatId = other.m_pressureMatId;
+        fDomainNameAndMatId = other.fDomainNameAndMatId;
+        fInterface_material_id = other.fInterface_material_id;
+        fPressureMatId = other.fPressureMatId;
         /// material id for the Macro fluxes
-        m_skeletonMatId = other.m_skeletonMatId;
+        fSkeletonMatId = other.fSkeletonMatId;
         /// material id for H(div) wrap materials
-        m_HdivWrapMatId = other.m_HdivWrapMatId;
+        fHdivWrapMatId = other.fHdivWrapMatId;
         /// material id for the mortar pressure space
-        m_MortarMatId = other.m_MortarMatId;
+        fMortarMatId = other.fMortarMatId;
         /// material id for a positive lagrange multiplier interface
-        m_posLagrangeMatId = other.m_posLagrangeMatId;
+        fPosLagrangeMatId = other.fPosLagrangeMatId;
         /// material id for a negative lagrange multiplier interface
-        m_negLagrangeMatId = other.m_negLagrangeMatId;
+        fNegLagrangeMatId = other.fNegLagrangeMatId;
         /// material id for a zero order H(div) boundary flux
-        m_zeroOrderHdivFluxMatId = other.m_zeroOrderHdivFluxMatId;
+        fZeroOrderHdivFluxMatId = other.fZeroOrderHdivFluxMatId;
 
-        mGmeshFileName = other.mGmeshFileName;
+        fGmeshFileName = other.fGmeshFileName;
       }
       return *this;
     }
@@ -130,37 +131,36 @@ public:
 
   class TPetroPhysics : public TSFSavable {
   public:
-    REAL mOilViscosity;
-    REAL mWaterViscosity;
-    REAL mSwr;    // residual water saturation
-    REAL mSor;    // residual oil saturation
-    int mKrModel; // 0 - Linear, 1 - Quadratic, 2 - Quadratic with residual
+    REAL fGasViscosity;
+    REAL fWaterViscosity;
+    REAL fSwr;    // residual water saturation
+    REAL fSgr;    // residual gas saturation
+    int fKrModel; // 0 - Linear, 1 - Quadratic, 2 - Quadratic with residual
 
-    std::vector<std::function<std::tuple<REAL, REAL>(REAL &)>> mKro;
-    std::vector<std::function<std::tuple<REAL, REAL>(REAL &)>> mKrw;
-    std::vector<std::function<std::tuple<REAL, REAL>(REAL &, REAL &, REAL &)>> mFo;
-    std::vector<std::function<std::tuple<REAL, REAL>(REAL &, REAL &, REAL &)>> mFw;
-    std::vector<std::function<std::tuple<REAL, REAL>(REAL &, REAL &)>> mLambdaW;
-    std::vector<std::function<std::tuple<REAL, REAL>(REAL &, REAL &)>> mLambdaO;
-    std::vector<std::function<std::tuple<REAL, REAL>(REAL &, REAL &, REAL &)>> mLambdaTotal;
+    std::vector<std::function<std::tuple<REAL, REAL>(REAL &)>> fKrg;
+    std::vector<std::function<std::tuple<REAL, REAL>(REAL &)>> fKrw;
+    std::vector<std::function<std::tuple<REAL, REAL>(REAL &, REAL &, REAL &)>> fFg;
+    std::vector<std::function<std::tuple<REAL, REAL>(REAL &, REAL &, REAL &)>> fFw;
+    std::vector<std::function<std::tuple<REAL, REAL>(REAL &, REAL &)>> fLambdaw;
+    std::vector<std::function<std::tuple<REAL, REAL>(REAL &, REAL &)>> fLambdag;
+    std::vector<std::function<std::tuple<REAL, REAL>(REAL &, REAL &, REAL &)>> fLambdaTotal;
 
     /** @brief Default constructor */
     TPetroPhysics() {
-      mOilViscosity = 1.0;
-      mWaterViscosity = 1.0;
-      REAL mSwr = 0.0;
-      REAL mSor = 0.0;
-      int mKrModel = 0;
-      mKro.resize(3);
-      mKrw.resize(3);
-      mFo.resize(3);
-      mFw.resize(3);
-      mLambdaW.resize(3);
-      mLambdaO.resize(3);
-      mLambdaTotal.resize(3);
+      fGasViscosity = 1.0;
+      fWaterViscosity = 1.0;
+      fSwr = 0.0;
+      fSgr = 0.0;
+      fKrModel = 0;
+      fKrg.resize(3);
+      fKrw.resize(3);
+      fFg.resize(3);
+      fFw.resize(3);
+      fLambdaw.resize(3);
+      fLambdag.resize(3);
+      fLambdaTotal.resize(3);
       CreateLinearKrModel();
       CreateQuadraticKrModel();
-      CreateQuadraticResidualKrModel();
     }
 
     /** @brief Destructor */
@@ -169,71 +169,70 @@ public:
 
     /** @brief Copy constructor */
     TPetroPhysics(const TPetroPhysics &other) {
-      mOilViscosity = other.mOilViscosity;
-      mWaterViscosity = other.mWaterViscosity;
-      mSwr = other.mSwr;
-      mSor = other.mSor;
-      mKrModel = other.mKrModel;
-      mKro = other.mKro;
-      mKrw = other.mKrw;
-      mFo = other.mFo;
-      mFw = other.mFw;
-      mLambdaW = other.mLambdaW;
-      mLambdaO = other.mLambdaO;
-      mLambdaTotal = other.mLambdaTotal;
+      fGasViscosity = other.fGasViscosity;
+      fWaterViscosity = other.fWaterViscosity;
+      fSwr = other.fSwr;
+      fSgr = other.fSgr;
+      fKrModel = other.fKrModel;
+      fKrg = other.fKrg;
+      fKrw = other.fKrw;
+      fFg = other.fFg;
+      fFw = other.fFw;
+      fLambdaw = other.fLambdaw;
+      fLambdag = other.fLambdag;
+      fLambdaTotal = other.fLambdaTotal;
     }
 
     /** @brief Copy assignment operator*/
     TPetroPhysics &operator=(const TPetroPhysics &other) {
       if (this != &other) // prevent self-assignment
       {
-        mOilViscosity = other.mOilViscosity;
-        mWaterViscosity = other.mWaterViscosity;
-        mSwr = other.mSwr;
-        mSor = other.mSor;
-        mKrModel = other.mKrModel;
-        mKro = other.mKro;
-        mKrw = other.mKrw;
-        mFo = other.mFo;
-        mFw = other.mFw;
-        mLambdaW = other.mLambdaW;
-        mLambdaO = other.mLambdaO;
-        mLambdaTotal = other.mLambdaTotal;
+        fGasViscosity = other.fGasViscosity;
+        fWaterViscosity = other.fWaterViscosity;
+        fSwr = other.fSwr;
+        fSgr = other.fSgr;
+        fKrModel = other.fKrModel;
+        fKrg = other.fKrg;
+        fKrw = other.fKrw;
+        fFg = other.fFg;
+        fFw = other.fFw;
+        fLambdaw = other.fLambdaw;
+        fLambdag = other.fLambdag;
+        fLambdaTotal = other.fLambdaTotal;
       }
       return *this;
     }
     void CreateLinearKrModel();
     void CreateQuadraticKrModel();
-    void CreateQuadraticResidualKrModel();
     void UpdateLambdasAndFracFlows(int krModel);
   };
 
   /**
-   * @brief Class that stores Fluid properties. For instance density of water and oil, compressibility of water and oil.
+   * @brief Class that stores Fluid properties. For instance density of water and Gas, compressibility of water and Gas.
    */
   class TFluidProperties : public TSFSavable {
   public:
-    REAL mOilViscosity;
-    REAL mWaterViscosity;
-    REAL mWaterCompressibility;
-    REAL mOilCompressibility;
-    REAL mOilDensityRef;
-    REAL mWaterDensityRef;
-    REAL mReferencePressure;
-    std::function<std::tuple<REAL, REAL>(REAL &)> mOilDensityF;
-    std::function<std::tuple<REAL, REAL>(REAL &)> mWaterDensityF;
+    REAL fGasViscosity;
+    REAL fWaterViscosity;
+    REAL fWaterCompressibility;
+    REAL fGasCompressibility;
+    REAL fGasDensityRef;
+    REAL fWaterDensityRef;
+    REAL fReferencePressure;
+    std::function<std::tuple<REAL, REAL>(REAL &)> fGasDensityFunc;
+    std::function<std::tuple<REAL, REAL>(REAL &)> fWaterDensityFunc;
 
     /** @brief Default constructor */
     TFluidProperties() {
-      mOilViscosity = 1.0;
-      mWaterViscosity = 1.0;
-      mOilDensityRef = 1000;
-      mWaterDensityRef = 1000;
-      mWaterCompressibility = 1.0e-8;
-      mOilCompressibility = 1.0e-7;
-      mReferencePressure = 1.013e5;
-      mOilDensityF = 0;
-      mWaterDensityF = 0;
+      fGasViscosity = 1.0;
+      fWaterViscosity = 1.0;
+      fGasDensityRef = 1000;
+      fWaterDensityRef = 1000;
+      fWaterCompressibility = 1.0e-8;
+      fGasCompressibility = 1.0e-7;
+      fReferencePressure = 1.013e5;
+      fGasDensityFunc = 0;
+      fWaterDensityFunc = 0;
       CreateLinearDensityFunction();
     }
 
@@ -243,29 +242,29 @@ public:
 
     /** @brief Copy constructor */
     TFluidProperties(const TFluidProperties &other) {
-      mOilViscosity = other.mOilViscosity;
-      mWaterViscosity = other.mWaterViscosity;
-      mWaterCompressibility = other.mWaterCompressibility;
-      mOilCompressibility = other.mOilCompressibility;
+      fGasViscosity = other.fGasViscosity;
+      fWaterViscosity = other.fWaterViscosity;
+      fWaterCompressibility = other.fWaterCompressibility;
+      fGasCompressibility = other.fGasCompressibility;
 
-      mReferencePressure = other.mReferencePressure;
-      mOilDensityRef = other.mOilDensityRef;
-      mWaterDensityRef = other.mWaterDensityRef;
-      mOilDensityF = other.mOilDensityF;
-      mWaterDensityF = other.mWaterDensityF;
+      fReferencePressure = other.fReferencePressure;
+      fGasDensityRef = other.fGasDensityRef;
+      fWaterDensityRef = other.fWaterDensityRef;
+      fGasDensityFunc = other.fGasDensityFunc;
+      fWaterDensityFunc = other.fWaterDensityFunc;
     }
 
     /** @brief Copy assignment operator*/
     TFluidProperties &operator=(const TFluidProperties &other) {
-      mOilViscosity = other.mOilViscosity;
-      mWaterViscosity = other.mWaterViscosity;
-      mWaterCompressibility = other.mWaterCompressibility;
-      mOilCompressibility = other.mOilCompressibility;
-      mOilDensityRef = other.mOilDensityRef;
-      mWaterDensityRef = other.mWaterDensityRef;
-      mReferencePressure = other.mReferencePressure;
-      mOilDensityF = other.mOilDensityF;
-      mWaterDensityF = other.mWaterDensityF;
+      fGasViscosity = other.fGasViscosity;
+      fWaterViscosity = other.fWaterViscosity;
+      fWaterCompressibility = other.fWaterCompressibility;
+      fGasCompressibility = other.fGasCompressibility;
+      fGasDensityRef = other.fGasDensityRef;
+      fWaterDensityRef = other.fWaterDensityRef;
+      fReferencePressure = other.fReferencePressure;
+      fGasDensityFunc = other.fGasDensityFunc;
+      fWaterDensityFunc = other.fWaterDensityFunc;
       return *this;
     }
     void CreateLinearDensityFunction();
@@ -278,14 +277,14 @@ public:
   class TReservoirProperties : public TSFSavable {
   public:
     // associates with a material id the porosity and permeability
-    std::map<int, std::pair<REAL, REAL>> mPorosityAndPermeability;
+    std::map<int, std::pair<REAL, REAL>> fPorosityAndPermeability;
 
     // Function that given a point (x,y,z) returns s0 (initial saturation)
-    std::function<REAL(const TPZVec<REAL> &)> s0;
+    std::function<REAL(const TPZVec<REAL> &)> fS0;
 
     /** @brief Default constructor */
     TReservoirProperties() {
-      mPorosityAndPermeability[0] = std::make_pair(1.0, 1.0);
+      fPorosityAndPermeability[0] = std::make_pair(1.0, 1.0);
     }
 
     /** @brief Destructor */
@@ -294,14 +293,14 @@ public:
 
     /** @brief Copy constructor */
     TReservoirProperties(const TReservoirProperties &other) {
-      mPorosityAndPermeability = other.mPorosityAndPermeability;
-      s0 = other.s0;
+      fPorosityAndPermeability = other.fPorosityAndPermeability;
+      fS0 = other.fS0;
     }
 
     /** @brief Copy assignment operator*/
     TReservoirProperties &operator=(const TReservoirProperties &other) {
-      mPorosityAndPermeability = other.mPorosityAndPermeability;
-      s0 = other.s0;
+      fPorosityAndPermeability = other.fPorosityAndPermeability;
+      fS0 = other.fS0;
       return *this;
     }
   };
@@ -311,26 +310,26 @@ public:
    */
   class TBoundaryConditions : public TSFSavable {
   public:
-    std::map<std::string, int> mDomainNameAndMatId;
+    std::map<std::string, int> fDomainNameAndMatId;
     /**
      * @brief Contains the boundary conditions for Darcy problem in a map. Key = matidOfBC, value = pair<typeOfBC,valueOfBC>
      */
-    std::map<int, std::pair<int, REAL>> mBCDarcyMatIdToTypeValue;
+    std::map<int, std::pair<int, REAL>> fBCDarcyMatIdToTypeValue;
 
     /**
      * @brief Contains the boundary conditions for Transport problem in a map. Key = matidOfBC, value = pair<typeOfBC,valueOfBC>
      */
-    std::map<int, std::pair<int, REAL>> mBCTransportMatIdToTypeValue;
+    std::map<int, std::pair<int, REAL>> fBCTransportMatIdToTypeValue;
 
     /**
      * @brief Contains the functions to be applied on the boundaries in a map. Key = matidOfBC, value = functionID (0 if no function is prescribed)
      */
-    std::map<int, std::pair<int, ForcingFunctionBCType<REAL>>> mBCDarcyMatIdToFunctionId;
+    std::map<int, std::pair<int, ForcingFunctionBCType<REAL>>> fBCDarcyMatIdToFunctionId;
 
     /**
      * @brief Contains the saturation functions to be applied on the boundaries in a map. Key = matidOfBC, value = functionID (0 if no function is prescribed)
      */
-    std::map<int, std::pair<int, ForcingFunctionBCType<REAL>>> mBCTransportMatIdToFunctionId;
+    std::map<int, std::pair<int, ForcingFunctionBCType<REAL>>> fBCTransportMatIdToFunctionId;
 
     /** @brief Default constructor */
     TBoundaryConditions() {}
@@ -341,22 +340,22 @@ public:
 
     /** @brief Copy constructor */
     TBoundaryConditions(const TBoundaryConditions &other) {
-      mBCDarcyMatIdToTypeValue = other.mBCDarcyMatIdToTypeValue;
-      mBCTransportMatIdToTypeValue = other.mBCTransportMatIdToTypeValue;
-      mDomainNameAndMatId = other.mDomainNameAndMatId;
-      mBCDarcyMatIdToFunctionId = other.mBCDarcyMatIdToFunctionId;
-      mBCTransportMatIdToFunctionId = other.mBCTransportMatIdToFunctionId;
+      fBCDarcyMatIdToTypeValue = other.fBCDarcyMatIdToTypeValue;
+      fBCTransportMatIdToTypeValue = other.fBCTransportMatIdToTypeValue;
+      fDomainNameAndMatId = other.fDomainNameAndMatId;
+      fBCDarcyMatIdToFunctionId = other.fBCDarcyMatIdToFunctionId;
+      fBCTransportMatIdToFunctionId = other.fBCTransportMatIdToFunctionId;
     }
 
     /** @brief Copy assignment operator*/
     TBoundaryConditions &operator=(const TBoundaryConditions &other) {
       if (this != &other) // prevent self-assignment
       {
-        mBCDarcyMatIdToTypeValue = other.mBCDarcyMatIdToTypeValue;
-        mBCTransportMatIdToTypeValue = other.mBCTransportMatIdToTypeValue;
-        mDomainNameAndMatId = other.mDomainNameAndMatId;
-        mBCDarcyMatIdToFunctionId = other.mBCDarcyMatIdToFunctionId;
-        mBCTransportMatIdToFunctionId = other.mBCTransportMatIdToFunctionId;
+        fBCDarcyMatIdToTypeValue = other.fBCDarcyMatIdToTypeValue;
+        fBCTransportMatIdToTypeValue = other.fBCTransportMatIdToTypeValue;
+        fDomainNameAndMatId = other.fDomainNameAndMatId;
+        fBCDarcyMatIdToFunctionId = other.fBCDarcyMatIdToFunctionId;
+        fBCTransportMatIdToFunctionId = other.fBCTransportMatIdToFunctionId;
       }
       return *this;
     }
@@ -377,7 +376,7 @@ public:
     /**
      * @brief time step size
      */
-    REAL m_dt;
+    REAL fDt;
 
     /**
      * @brief Flag to indicate the analysis type: 1 - only Darcy, 2 - only transport, 3 - coupled
@@ -387,62 +386,62 @@ public:
     /**
      * @brief Residual tolerance for Darcy
      */
-    REAL m_res_tol_darcy;
+    REAL fResTolDarcy;
 
     /**
      * @brief Residual tolerance for transport
      */
-    REAL m_res_tol_transport;
+    REAL fResTolTransport;
 
     /**
      * @brief Correction tolerance for darcy
      */
-    REAL m_corr_tol_darcy;
+    REAL fCorrTolDarcy;
 
     /**
      * @brief Correction tolerance for transport
      */
-    REAL m_corr_tol_transport;
+    REAL fCorrTolTransport;
 
-    REAL m_sfi_tol;
+    REAL fSfiTol;
     /**
      * @brief Maximum number of iterations per time step for darcy
      */
-    int m_max_iter_darcy;
+    int fMaxIterDarcy;
 
     /**
      * @brief Maximum number of iterations per time step for transport
      */
-    int m_max_iter_transport;
+    int fMaxIterTransport;
 
     /**
      * @brief Maximum number of Sequential Fully Implicit (SFI) iterations per time step
      */
-    int m_max_iter_sfi;
+    int fMaxIterSfi;
 
     /**
      * @brief Number of time steps
      */
-    int m_n_steps;
+    int fNSteps;
 
     // Order of approximation for the border of the Pressure element
-    int m_MortarBorderElementPresOrder;
+    int fMortarBorderElementPresOrder;
     // Order of approximation for the border of the Flux element
-    int m_MortarBorderElementFluxOrder;
+    int fMortarBorderElementFluxOrder;
     /**
      * @brief Directive for the use of four spaces
      */
-    bool m_four_approx_spaces;
+    bool fFourApproxSpaces;
 
     /**
      * @brief Axisymmetric flag
      */
-    bool m_is_axisymmetric;
+    bool fIsAxisymmetric;
 
     /**
      * @brief Linear trace flag. If true, the darcy problem is ran only once
      */
-    bool m_is_linearTrace;
+    bool fIsLinearTrace;
 
     /**
      * @brief Approximation space "type"
@@ -455,35 +454,33 @@ public:
                       E4SpaceMortar,
                       E4Space1Hybridization };
 
-    MSpaceType m_SpaceType = ENone;
+    MSpaceType fSpaceType = ENone;
 
-    std::vector<REAL> m_gravity;
+    std::vector<REAL> fGravity;
 
-    int m_nThreadsDarcyProblem = 0;
+    int fNThreadsDarcyProblem = 0;
 
-    bool m_UseSubstructures_Q;
     /** @brief Default constructor */
     TNumerics() {
-      m_dt = 0.0;
+      fDt = 0.0;
       fAnalysisType = 3;
-      m_res_tol_darcy = 1.0e-4;
-      m_res_tol_transport = 1.0e-7;
-      m_corr_tol_darcy = 1.0e-4;
-      m_corr_tol_transport = 1.0e-7;
-      m_max_iter_darcy = 0;
-      m_max_iter_transport = 0;
-      m_max_iter_sfi = 0;
-      m_sfi_tol = 1.0e-3;
-      m_n_steps = 0;
-      m_four_approx_spaces = false;
-      m_is_axisymmetric = false;
-      m_is_linearTrace = true;
-      m_SpaceType = ENone;
-      m_gravity.resize(3, 0.0);
-      m_nThreadsDarcyProblem = 0;
-      m_MortarBorderElementPresOrder = 0;
-      m_MortarBorderElementFluxOrder = 0;
-      m_UseSubstructures_Q = false;
+      fResTolDarcy = 1.0e-4;
+      fResTolTransport = 1.0e-7;
+      fCorrTolDarcy = 1.0e-4;
+      fCorrTolTransport = 1.0e-7;
+      fMaxIterDarcy = 0;
+      fMaxIterTransport = 0;
+      fMaxIterSfi = 0;
+      fSfiTol = 1.0e-3;
+      fNSteps = 0;
+      fFourApproxSpaces = false;
+      fIsAxisymmetric = false;
+      fIsLinearTrace = true;
+      fSpaceType = ENone;
+      fGravity.resize(3, 0.0);
+      fNThreadsDarcyProblem = 0;
+      fMortarBorderElementPresOrder = 0;
+      fMortarBorderElementFluxOrder = 0;
     }
     /** @brief Destructor */
     ~TNumerics() {
@@ -491,26 +488,25 @@ public:
 
     /** @brief Copy constructor */
     TNumerics(const TNumerics &other) {
-      m_dt = other.m_dt;
+      fDt = other.fDt;
       fAnalysisType = other.fAnalysisType;
-      m_res_tol_darcy = other.m_res_tol_darcy;
-      m_res_tol_transport = other.m_res_tol_transport;
-      m_corr_tol_darcy = other.m_corr_tol_darcy;
-      m_corr_tol_transport = other.m_corr_tol_transport;
-      m_max_iter_darcy = other.m_max_iter_darcy;
-      m_max_iter_transport = other.m_max_iter_transport;
-      m_max_iter_sfi = other.m_max_iter_sfi;
-      m_sfi_tol = other.m_sfi_tol;
-      m_n_steps = other.m_n_steps;
-      m_four_approx_spaces = other.m_four_approx_spaces;
-      m_is_axisymmetric = other.m_is_axisymmetric;
-      m_is_linearTrace = other.m_is_linearTrace;
-      m_SpaceType = other.m_SpaceType;
-      m_gravity = other.m_gravity;
-      m_nThreadsDarcyProblem = other.m_nThreadsDarcyProblem;
-      m_MortarBorderElementPresOrder = other.m_MortarBorderElementPresOrder;
-      m_MortarBorderElementFluxOrder = other.m_MortarBorderElementFluxOrder;
-      m_UseSubstructures_Q = other.m_UseSubstructures_Q;
+      fResTolDarcy = other.fResTolDarcy;
+      fResTolTransport = other.fResTolTransport;
+      fCorrTolDarcy = other.fCorrTolDarcy;
+      fCorrTolTransport = other.fCorrTolTransport;
+      fMaxIterDarcy = other.fMaxIterDarcy;
+      fMaxIterTransport = other.fMaxIterTransport;
+      fMaxIterSfi = other.fMaxIterSfi;
+      fSfiTol = other.fSfiTol;
+      fNSteps = other.fNSteps;
+      fFourApproxSpaces = other.fFourApproxSpaces;
+      fIsAxisymmetric = other.fIsAxisymmetric;
+      fIsLinearTrace = other.fIsLinearTrace;
+      fSpaceType = other.fSpaceType;
+      fGravity = other.fGravity;
+      fNThreadsDarcyProblem = other.fNThreadsDarcyProblem;
+      fMortarBorderElementPresOrder = other.fMortarBorderElementPresOrder;
+      fMortarBorderElementFluxOrder = other.fMortarBorderElementFluxOrder;
     }
 
     /** @brief Copy assignment operator*/
@@ -520,26 +516,25 @@ public:
         return *this;
       }
 
-      m_dt = other.m_dt;
+      fDt = other.fDt;
       fAnalysisType = other.fAnalysisType;
-      m_res_tol_darcy = other.m_res_tol_darcy;
-      m_res_tol_transport = other.m_res_tol_transport;
-      m_corr_tol_darcy = other.m_corr_tol_darcy;
-      m_corr_tol_transport = other.m_corr_tol_transport;
-      m_max_iter_darcy = other.m_max_iter_darcy;
-      m_max_iter_transport = other.m_max_iter_transport;
-      m_max_iter_sfi = other.m_max_iter_sfi;
-      m_sfi_tol = other.m_sfi_tol;
-      m_n_steps = other.m_n_steps;
-      m_four_approx_spaces = other.m_four_approx_spaces;
-      m_is_axisymmetric = other.m_is_axisymmetric;
-      m_is_linearTrace = other.m_is_linearTrace;
-      m_SpaceType = other.m_SpaceType;
-      m_gravity = other.m_gravity;
-      m_nThreadsDarcyProblem = other.m_nThreadsDarcyProblem;
-      m_MortarBorderElementPresOrder = other.m_MortarBorderElementPresOrder;
-      m_MortarBorderElementFluxOrder = other.m_MortarBorderElementFluxOrder;
-      m_UseSubstructures_Q = other.m_UseSubstructures_Q;
+      fResTolDarcy = other.fResTolDarcy;
+      fResTolTransport = other.fResTolTransport;
+      fCorrTolDarcy = other.fCorrTolDarcy;
+      fCorrTolTransport = other.fCorrTolTransport;
+      fMaxIterDarcy = other.fMaxIterDarcy;
+      fMaxIterTransport = other.fMaxIterTransport;
+      fMaxIterSfi = other.fMaxIterSfi;
+      fSfiTol = other.fSfiTol;
+      fNSteps = other.fNSteps;
+      fFourApproxSpaces = other.fFourApproxSpaces;
+      fIsAxisymmetric = other.fIsAxisymmetric;
+      fIsLinearTrace = other.fIsLinearTrace;
+      fSpaceType = other.fSpaceType;
+      fGravity = other.fGravity;
+      fNThreadsDarcyProblem = other.fNThreadsDarcyProblem;
+      fMortarBorderElementPresOrder = other.fMortarBorderElementPresOrder;
+      fMortarBorderElementFluxOrder = other.fMortarBorderElementFluxOrder;
       return *this;
     }
 
@@ -549,75 +544,72 @@ public:
         return true;
       }
 
-      return m_dt == other.m_dt &&
+      return fDt == other.fDt &&
              fAnalysisType == other.fAnalysisType &&
-             m_res_tol_darcy == other.m_res_tol_darcy &&
-             m_res_tol_transport == other.m_res_tol_transport &&
-             m_corr_tol_darcy == other.m_corr_tol_darcy &&
-             m_corr_tol_transport == other.m_corr_tol_transport &&
-             m_max_iter_darcy == other.m_max_iter_darcy &&
-             m_max_iter_transport == other.m_max_iter_transport &&
-             m_max_iter_sfi == other.m_max_iter_sfi &&
-             m_sfi_tol == other.m_sfi_tol &&
-             m_n_steps == other.m_n_steps &&
-             m_four_approx_spaces == other.m_four_approx_spaces &&
-             m_is_axisymmetric == other.m_is_axisymmetric &&
-             m_is_linearTrace == other.m_is_linearTrace &&
-             m_SpaceType == other.m_SpaceType &&
-             m_gravity == other.m_gravity &&
-             m_nThreadsDarcyProblem == other.m_nThreadsDarcyProblem &&
-             m_MortarBorderElementPresOrder == other.m_MortarBorderElementPresOrder &&
-             m_MortarBorderElementFluxOrder == other.m_MortarBorderElementFluxOrder &&
-             m_UseSubstructures_Q == other.m_UseSubstructures_Q;
+             fResTolDarcy == other.fResTolDarcy &&
+             fResTolTransport == other.fResTolTransport &&
+             fCorrTolDarcy == other.fCorrTolDarcy &&
+             fCorrTolTransport == other.fCorrTolTransport &&
+             fMaxIterDarcy == other.fMaxIterDarcy &&
+             fMaxIterTransport == other.fMaxIterTransport &&
+             fMaxIterSfi == other.fMaxIterSfi &&
+             fSfiTol == other.fSfiTol &&
+             fNSteps == other.fNSteps &&
+             fFourApproxSpaces == other.fFourApproxSpaces &&
+             fIsAxisymmetric == other.fIsAxisymmetric &&
+             fIsLinearTrace == other.fIsLinearTrace &&
+             fSpaceType == other.fSpaceType &&
+             fGravity == other.fGravity &&
+             fNThreadsDarcyProblem == other.fNThreadsDarcyProblem &&
+             fMortarBorderElementPresOrder == other.fMortarBorderElementPresOrder &&
+             fMortarBorderElementFluxOrder == other.fMortarBorderElementFluxOrder;
     }
 
     void Write(TPZStream &buf, int withclassid) const { // ok
-      buf.Write(&m_dt);
+      buf.Write(&fDt);
       buf.Write(&fAnalysisType);
-      buf.Write(&m_res_tol_darcy);
-      buf.Write(&m_res_tol_transport);
-      buf.Write(&m_corr_tol_darcy);
-      buf.Write(&m_max_iter_darcy);
-      buf.Write(&m_max_iter_transport);
-      buf.Write(&m_max_iter_sfi);
-      buf.Write(&m_sfi_tol);
-      buf.Write(&m_n_steps);
-      int temp = m_four_approx_spaces;
+      buf.Write(&fResTolDarcy);
+      buf.Write(&fResTolTransport);
+      buf.Write(&fCorrTolDarcy);
+      buf.Write(&fMaxIterDarcy);
+      buf.Write(&fMaxIterTransport);
+      buf.Write(&fMaxIterSfi);
+      buf.Write(&fSfiTol);
+      buf.Write(&fNSteps);
+      int temp = fFourApproxSpaces;
       buf.Write(&temp);
-      temp = m_is_axisymmetric;
+      temp = fIsAxisymmetric;
       buf.Write(&temp);
-      temp = m_is_linearTrace;
+      temp = fIsLinearTrace;
       buf.Write(&temp);
-      temp = m_SpaceType;
+      temp = fSpaceType;
       buf.Write(&temp);
-      buf.Write(m_gravity);
-      buf.Write(m_nThreadsDarcyProblem);
-      buf.Write(m_UseSubstructures_Q);
+      buf.Write(fGravity);
+      buf.Write(fNThreadsDarcyProblem);
     }
 
     void Read(TPZStream &buf, void *context) { // ok
-      buf.Read(&m_dt);
+      buf.Read(&fDt);
       buf.Read(&fAnalysisType);
-      buf.Read(&m_res_tol_darcy);
-      buf.Read(&m_res_tol_transport);
-      buf.Read(&m_corr_tol_darcy);
-      buf.Read(&m_corr_tol_transport);
-      buf.Read(&m_max_iter_darcy);
-      buf.Read(&m_max_iter_transport);
-      buf.Read(&m_max_iter_sfi);
-      buf.Read(&m_sfi_tol);
-      buf.Read(&m_n_steps);
+      buf.Read(&fResTolDarcy);
+      buf.Read(&fResTolTransport);
+      buf.Read(&fCorrTolDarcy);
+      buf.Read(&fCorrTolTransport);
+      buf.Read(&fMaxIterDarcy);
+      buf.Read(&fMaxIterTransport);
+      buf.Read(&fMaxIterSfi);
+      buf.Read(&fSfiTol);
+      buf.Read(&fNSteps);
       int temp;
       buf.Read(&temp);
-      m_four_approx_spaces = temp;
+      fFourApproxSpaces = temp;
       buf.Read(&temp);
-      m_is_axisymmetric = temp;
+      fIsAxisymmetric = temp;
       buf.Read(&temp);
-      m_is_linearTrace = temp;
+      fIsLinearTrace = temp;
       buf.Read(&temp);
-      m_SpaceType = (MSpaceType)temp;
-      buf.Read(&m_nThreadsDarcyProblem);
-      buf.Read(&m_UseSubstructures_Q);
+      fSpaceType = (MSpaceType)temp;
+      buf.Read(&fNThreadsDarcyProblem);
     }
 
     virtual int ClassId() const {
@@ -625,21 +617,21 @@ public:
     }
 
     void Print() const {
-      std::cout << m_dt << std::endl;
+      std::cout << fDt << std::endl;
       std::cout << fAnalysisType << std::endl;
-      std::cout << m_res_tol_darcy << std::endl;
-      std::cout << m_res_tol_transport << std::endl;
-      std::cout << m_corr_tol_darcy << std::endl;
-      std::cout << m_corr_tol_transport << std::endl;
-      std::cout << m_max_iter_darcy << std::endl;
-      std::cout << m_max_iter_transport << std::endl;
-      std::cout << m_max_iter_sfi << std::endl;
-      std::cout << m_n_steps << std::endl;
-      std::cout << m_four_approx_spaces << std::endl;
-      std::cout << m_is_axisymmetric << std::endl;
-      std::cout << m_is_linearTrace << std::endl;
-      std::cout << m_SpaceType << std::endl;
-      std::cout << m_nThreadsDarcyProblem << std::endl;
+      std::cout << fResTolDarcy << std::endl;
+      std::cout << fResTolTransport << std::endl;
+      std::cout << fCorrTolDarcy << std::endl;
+      std::cout << fCorrTolTransport << std::endl;
+      std::cout << fMaxIterDarcy << std::endl;
+      std::cout << fMaxIterTransport << std::endl;
+      std::cout << fMaxIterSfi << std::endl;
+      std::cout << fNSteps << std::endl;
+      std::cout << fFourApproxSpaces << std::endl;
+      std::cout << fIsAxisymmetric << std::endl;
+      std::cout << fIsLinearTrace << std::endl;
+      std::cout << fSpaceType << std::endl;
+      std::cout << fNThreadsDarcyProblem << std::endl;
     }
   };
 
@@ -651,51 +643,51 @@ public:
     /**
      * @brief Mixed operator vtk file name
      */
-    std::string m_file_name_darcy;
+    std::string fFileNameDarcy;
 
     /**
      * @brief Transpor operator vtk file name
      */
-    std::string m_file_name_transport;
+    std::string fFileNameTransport;
 
     /**
      * @brief Contains scalar variables that will be postprocessed
      */
-    TPZStack<std::string, 10> m_scalnamesDarcy;
+    TPZStack<std::string, 10> fScalnamesDarcy;
 
     /**
      * @brief Contains scalar variables that will be postprocessed
      */
-    TPZStack<std::string, 10> m_scalnamesTransport;
+    TPZStack<std::string, 10> fScalnamesTransport;
 
     /**
      * @brief Contains vector variables that will be postprocessed
      */
-    TPZStack<std::string, 10> m_vecnamesDarcy;
+    TPZStack<std::string, 10> fVecnamesDarcy;
 
     /**
      * @brief Period of time post-processed data is printed
      */
-    REAL m_file_time_step;
+    REAL fFileTimeStep;
 
     /**
      * @brief Contains the times at which post-processed data is printed
      */
-    TPZStack<REAL, 100> m_vec_reporting_times;
+    TPZStack<REAL, 100> fVecReportingTimes;
 
     /**
      * @brief Default constructor
      */
     TPostProcess() {
-      m_file_name_darcy = "";
-      m_file_name_transport = "";
-      m_scalnamesDarcy.Resize(0);
-      m_scalnamesDarcy.Resize(0);
-      m_scalnamesTransport.Resize(2);
-      m_scalnamesTransport.Push("Sw");
-      m_scalnamesTransport.Push("So");
-      m_file_time_step = 0.0;
-      m_vec_reporting_times.Resize(0);
+      fFileNameDarcy = "";
+      fFileNameTransport = "";
+      fScalnamesDarcy.Resize(0);
+      fScalnamesDarcy.Resize(0);
+      fScalnamesTransport.Resize(2);
+      fScalnamesTransport.Push("Sw");
+      fScalnamesTransport.Push("Sg");
+      fFileTimeStep = 0.0;
+      fVecReportingTimes.Resize(0);
     }
     /**
      * @brief Destructor
@@ -707,13 +699,13 @@ public:
      * @brief Copy constructor
      */
     TPostProcess(const TPostProcess &other) {
-      m_file_name_darcy = other.m_file_name_darcy;
-      m_file_name_transport = other.m_file_name_transport;
-      m_scalnamesDarcy = other.m_scalnamesDarcy;
-      m_scalnamesDarcy = other.m_scalnamesDarcy;
-      m_scalnamesTransport = other.m_scalnamesTransport;
-      m_file_time_step = other.m_file_time_step;
-      m_vec_reporting_times = other.m_vec_reporting_times;
+      fFileNameDarcy = other.fFileNameDarcy;
+      fFileNameTransport = other.fFileNameTransport;
+      fScalnamesDarcy = other.fScalnamesDarcy;
+      fScalnamesDarcy = other.fScalnamesDarcy;
+      fScalnamesTransport = other.fScalnamesTransport;
+      fFileTimeStep = other.fFileTimeStep;
+      fVecReportingTimes = other.fVecReportingTimes;
     }
     /**
      * @brief Copy assignment operator
@@ -724,13 +716,13 @@ public:
         return *this;
       }
 
-      m_file_name_darcy = other.m_file_name_darcy;
-      m_file_name_transport = other.m_file_name_transport;
-      m_vecnamesDarcy = other.m_vecnamesDarcy;
-      m_scalnamesDarcy = other.m_scalnamesDarcy;
-      m_scalnamesTransport = other.m_scalnamesTransport;
-      m_file_time_step = other.m_file_time_step;
-      m_vec_reporting_times = other.m_vec_reporting_times;
+      fFileNameDarcy = other.fFileNameDarcy;
+      fFileNameTransport = other.fFileNameTransport;
+      fVecnamesDarcy = other.fVecnamesDarcy;
+      fScalnamesDarcy = other.fScalnamesDarcy;
+      fScalnamesTransport = other.fScalnamesTransport;
+      fFileTimeStep = other.fFileTimeStep;
+      fVecReportingTimes = other.fVecReportingTimes;
 
       return *this;
     }
@@ -741,33 +733,33 @@ public:
         return true;
       }
 
-      return m_file_name_darcy == other.m_file_name_darcy &&
-             m_file_name_transport == other.m_file_name_transport &&
-             m_vecnamesDarcy == other.m_vecnamesDarcy &&
-             m_scalnamesDarcy == other.m_scalnamesDarcy &&
-             m_scalnamesTransport == other.m_scalnamesTransport &&
-             m_file_time_step == other.m_file_time_step &&
-             m_vec_reporting_times == other.m_vec_reporting_times;
+      return fFileNameDarcy == other.fFileNameDarcy &&
+             fFileNameTransport == other.fFileNameTransport &&
+             fVecnamesDarcy == other.fVecnamesDarcy &&
+             fScalnamesDarcy == other.fScalnamesDarcy &&
+             fScalnamesTransport == other.fScalnamesTransport &&
+             fFileTimeStep == other.fFileTimeStep &&
+             fVecReportingTimes == other.fVecReportingTimes;
     }
 
     void Write(TPZStream &buf, int withclassid) const { // ok
-      buf.Write(&m_file_name_darcy);
-      buf.Write(&m_file_name_transport);
-      buf.Write(m_vecnamesDarcy);
-      buf.Write(m_scalnamesDarcy);
-      buf.Write(m_scalnamesTransport);
-      buf.Write(&m_file_time_step);
-      buf.Write(m_vec_reporting_times);
+      buf.Write(&fFileNameDarcy);
+      buf.Write(&fFileNameTransport);
+      buf.Write(fVecnamesDarcy);
+      buf.Write(fScalnamesDarcy);
+      buf.Write(fScalnamesTransport);
+      buf.Write(&fFileTimeStep);
+      buf.Write(fVecReportingTimes);
     }
 
     void Read(TPZStream &buf, void *context) { // ok
-      buf.Read(&m_file_name_darcy);
-      buf.Read(&m_file_name_transport);
-      buf.Read(m_vecnamesDarcy);
-      buf.Read(m_scalnamesDarcy);
-      buf.Read(m_scalnamesTransport);
-      buf.Read(&m_file_time_step);
-      buf.Read(m_vec_reporting_times);
+      buf.Read(&fFileNameDarcy);
+      buf.Read(&fFileNameTransport);
+      buf.Read(fVecnamesDarcy);
+      buf.Read(fScalnamesDarcy);
+      buf.Read(fScalnamesTransport);
+      buf.Read(&fFileTimeStep);
+      buf.Read(fVecReportingTimes);
     }
 
     virtual int ClassId() const {
@@ -775,30 +767,30 @@ public:
     }
 
     void Print() const {
-      std::cout << m_file_name_darcy << std::endl;
-      std::cout << m_file_name_transport << std::endl;
-      std::cout << m_file_time_step << std::endl;
-      std::cout << m_vec_reporting_times << std::endl;
+      std::cout << fFileNameDarcy << std::endl;
+      std::cout << fFileNameTransport << std::endl;
+      std::cout << fFileTimeStep << std::endl;
+      std::cout << fVecReportingTimes << std::endl;
       // scalnames and vecnames
     }
   };
 
   // describes the material id of peripheral material objects (skeleton matid, hdivwrap matid, etc)
   // contains a data structure associating a matid with a string generated by gmesh
-  TGeometry mTGeometry;
+  TGeometry fTGeometry;
   // describes the properties of the fluid mixture (relative permeabilities)
-  TPetroPhysics mTPetroPhysics;
-  // describes the properties of the oil and water
-  TFluidProperties mTFluidProperties;
+  TPetroPhysics fTPetroPhysics;
+  // describes the properties of the Gas and water
+  TFluidProperties fTFluidProperties;
   // describes the initial conditions of saturation
   // describes the values of permeability by material id
   // describes the porosity of the reservoir
   // describes the volume factor (?) by material id
   //
-  TReservoirProperties mTReservoirProperties;
+  TReservoirProperties fTReservoirProperties;
 
   // defines the matids and values associated with the boundary conditions
-  TBoundaryConditions mTBoundaryConditions;
+  TBoundaryConditions fTBoundaryConditions;
   /*
    * stores the size of the timestep
    * stores the tolerances of the iterative solver
@@ -808,7 +800,7 @@ public:
    * defines polynomial orders when applying hybridization
    * defines if the mesh is going to be substructured
    */
-  TNumerics mTNumerics;
+  TNumerics fTNumerics;
   // define the post processing information
-  TPostProcess mTPostProcess;
+  TPostProcess fTPostProcess;
 };
