@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "Material/TPZMatTypes.h"
 #include "TPZStream.h"
+#include "TSFFunctionsGenerator.h"
 #include "TSFSavable.h"
 #include "json.hpp"
 #include "pzmanvector.h"
@@ -548,6 +548,14 @@ public:
       if (&other == this) {
         return true;
       }
+      bool gravitCheck = true;
+      for (int i = 0; i < 3; i++) {
+        if (fGravity[i] != other.fGravity[i]) {
+          gravitCheck = false;
+          break;
+          ;
+        }
+      }
 
       return fDt == other.fDt &&
              fAnalysisType == other.fAnalysisType &&
@@ -564,7 +572,7 @@ public:
              fIsAxisymmetric == other.fIsAxisymmetric &&
              fIsLinearTrace == other.fIsLinearTrace &&
              fSpaceType == other.fSpaceType &&
-             fGravity == other.fGravity &&
+             gravitCheck &&
              fNThreadsDarcyProblem == other.fNThreadsDarcyProblem &&
              fMortarBorderElementPresOrder == other.fMortarBorderElementPresOrder &&
              fMortarBorderElementFluxOrder == other.fMortarBorderElementFluxOrder;
@@ -676,6 +684,11 @@ public:
     REAL fFileTimeStep;
 
     /**
+     * @brief Frequency post-processed data is printed
+     */
+    int fPostProcessFrequency;
+
+    /**
      * @brief Contains the times at which post-processed data is printed
      */
     TPZStack<REAL, 100> fVecReportingTimes;
@@ -692,6 +705,7 @@ public:
       fScalnamesTransport.Push("Sw");
       fScalnamesTransport.Push("Sg");
       fFileTimeStep = 0.0;
+      fPostProcessFrequency = 1;
       fVecReportingTimes.Resize(0);
     }
     /**
@@ -710,6 +724,7 @@ public:
       fScalnamesDarcy = other.fScalnamesDarcy;
       fScalnamesTransport = other.fScalnamesTransport;
       fFileTimeStep = other.fFileTimeStep;
+      fPostProcessFrequency = other.fPostProcessFrequency;
       fVecReportingTimes = other.fVecReportingTimes;
     }
     /**
@@ -727,6 +742,7 @@ public:
       fScalnamesDarcy = other.fScalnamesDarcy;
       fScalnamesTransport = other.fScalnamesTransport;
       fFileTimeStep = other.fFileTimeStep;
+      fPostProcessFrequency = other.fPostProcessFrequency;
       fVecReportingTimes = other.fVecReportingTimes;
 
       return *this;
@@ -744,6 +760,7 @@ public:
              fScalnamesDarcy == other.fScalnamesDarcy &&
              fScalnamesTransport == other.fScalnamesTransport &&
              fFileTimeStep == other.fFileTimeStep &&
+             fPostProcessFrequency == other.fPostProcessFrequency &&
              fVecReportingTimes == other.fVecReportingTimes;
     }
 
@@ -754,6 +771,7 @@ public:
       buf.Write(fScalnamesDarcy);
       buf.Write(fScalnamesTransport);
       buf.Write(&fFileTimeStep);
+      buf.Write(&fPostProcessFrequency);
       buf.Write(fVecReportingTimes);
     }
 
@@ -764,6 +782,7 @@ public:
       buf.Read(fScalnamesDarcy);
       buf.Read(fScalnamesTransport);
       buf.Read(&fFileTimeStep);
+      buf.Read(&fPostProcessFrequency);
       buf.Read(fVecReportingTimes);
     }
 
@@ -775,8 +794,8 @@ public:
       std::cout << fFileNameDarcy << std::endl;
       std::cout << fFileNameTransport << std::endl;
       std::cout << fFileTimeStep << std::endl;
+      std::cout << fPostProcessFrequency << std::endl;
       std::cout << fVecReportingTimes << std::endl;
-      // scalnames and vecnames
     }
   };
 

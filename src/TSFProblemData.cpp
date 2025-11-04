@@ -263,9 +263,16 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     fTBoundaryConditions.fDomainNameAndMatId[name] = matid;
     if (BCDarcyMatIdToTypeValue.find(matid) != BCDarcyMatIdToTypeValue.end()) DebugStop();
     BCDarcyMatIdToTypeValue[matid] = std::make_pair(type, value);
-    // BCDarcyMatIdToFunctionId[matid] = std::make_pair(functionID, forcingfunctionBC[functionID]); //REMEMBER TO FIX IT
+    TSFFunctionsGenerator functionGen;
+    TSFFunctionsGenerator::EDarcyBCFunctionType darcy_functionType = bc["functionID"];
+    functionGen.SetDarcyBCFuncType(darcy_functionType);
+    auto darcyBCfunc = functionGen.CreateDarcyBC();
+    BCDarcyMatIdToFunctionId[matid] = std::make_pair(functionID, darcyBCfunc);
+    TSFFunctionsGenerator::ETransportBCFunctionType transport_functionType = bc["SaturationFunctionID"];
+    functionGen.SetTransportBCFuncType(transport_functionType);
+    auto transportBCfunc = functionGen.CreateTransportBC();
     BCTransportMatIdToTypeValue[matid] = std::make_pair(type, external_saturation);
-    // BCTransportMatIdToFunctionId[matid] = std::make_pair(saturation_functionID, forcingfunctionBC[saturation_functionID]); //REMEMBER TO FIX IT
+    BCTransportMatIdToFunctionId[matid] = std::make_pair(saturation_functionID, transportBCfunc);
   }
 
   // ------------------------ Numerics Parameters ------------------------
@@ -283,11 +290,49 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     }
     fTNumerics.fGravity = grav;
 
+    fTNumerics.fResTolTransport = 1.e-6;
+    fTNumerics.fCorrTolTransport = 1.e-6;
+    fTNumerics.fResTolDarcy = 1.e-6;
+    fTNumerics.fCorrTolDarcy = 1.e-6;
+    fTNumerics.fFourApproxSpaces = true;
+    fTNumerics.fMaxIterSfi = 10;
+    fTNumerics.fMaxIterDarcy = 10;
+    fTNumerics.fMaxIterTransport = 10;
     if (numerics.find("IsAxisymmetric") != numerics.end()) {
       fTNumerics.fIsAxisymmetric = numerics["IsAxisymmetric"];
     }
     if (numerics.find("IsLinearTrace") != numerics.end()) {
       fTNumerics.fIsLinearTrace = numerics["IsLinearTrace"];
+    }
+    if (numerics.find("FourApproxSpaces") != numerics.end()) {
+      fTNumerics.fFourApproxSpaces = numerics["FourApproxSpaces"];
+    }
+    if (numerics.find("NThreadsDarcyProblem") != numerics.end()) {
+      fTNumerics.fNThreadsDarcyProblem = numerics["NThreadsDarcy"];
+    }
+    if (numerics.find("MaxIterSFI") != numerics.end()) {
+      fTNumerics.fMaxIterSfi = numerics["MaxIterSFI"];
+    }
+    if (numerics.find("MaxIterDarcy") != numerics.end()) {
+      fTNumerics.fMaxIterDarcy = numerics["MaxIterDarcy"];
+    }
+    if (numerics.find("MaxIterTransport") != numerics.end()) {
+      fTNumerics.fMaxIterTransport = numerics["MaxIterTransport"];
+    }
+    if (numerics.find("SFITol") != numerics.end()) {
+      fTNumerics.fSfiTol = numerics["SFITol"];
+    }
+    if (numerics.find("ResTolTransport") != numerics.end()) {
+      fTNumerics.fResTolTransport = numerics["ResTolTransport"];
+    }
+    if (numerics.find("CorrTolTransport") != numerics.end()) {
+      fTNumerics.fCorrTolTransport = numerics["CorrTolTransport"];
+    }
+    if (numerics.find("ResTolDarcy") != numerics.end()) {
+      fTNumerics.fResTolDarcy = numerics["ResTolDarcy"];
+    }
+    if (numerics.find("CorrTolDarcy") != numerics.end()) {
+      fTNumerics.fCorrTolDarcy = numerics["CorrTolDarcy"];
     }
   }
 
@@ -295,25 +340,25 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
   if (input.find("FluidProperties") != input.end()) {
     auto properties = input["FluidProperties"];
     if (properties.find("WaterDensity") == properties.end()) DebugStop();
-    sim_data.mTFluidProperties.mWaterDensityRef = properties["WaterDensity"];
+    fTFluidProperties.fWaterDensityRef = properties["WaterDensity"];
     if (properties.find("WaterViscosity") == properties.end()) DebugStop();
-    sim_data.mTFluidProperties.mWaterViscosity = properties["WaterViscosity"];
+    fTFluidProperties.fWaterViscosity = properties["WaterViscosity"];
     if (properties.find("WaterCompressibility") == properties.end()) DebugStop();
-    sim_data.mTFluidProperties.mWaterCompressibility = properties["WaterCompressibility"];
-    if (properties.find("OilDensity") == properties.end()) DebugStop();
-    sim_data.mTFluidProperties.mOilDensityRef = properties["OilDensity"];
-    if (properties.find("OilViscosity") == properties.end()) DebugStop();
-    sim_data.mTFluidProperties.mOilViscosity = properties["OilViscosity"];
-    if (properties.find("OilCompressibility") == properties.end()) DebugStop();
-    sim_data.mTFluidProperties.mOilCompressibility = properties["OilCompressibility"];
+    fTFluidProperties.fWaterCompressibility = properties["WaterCompressibility"];
+    if (properties.find("GasDensity") == properties.end()) DebugStop();
+    fTFluidProperties.fGasDensityRef = properties["GasDensity"];
+    if (properties.find("GasViscosity") == properties.end()) DebugStop();
+    fTFluidProperties.fGasViscosity = properties["GasViscosity"];
+    if (properties.find("GasCompressibility") == properties.end()) DebugStop();
+    fTFluidProperties.fGasCompressibility = properties["GasCompressibility"];
     if (properties.find("DensityModel") == properties.end()) DebugStop();
     if (properties["DensityModel"] == 0) {
-      sim_data.mTFluidProperties.CreateLinearDensityFunction();
+      fTFluidProperties.CreateLinearDensityFunction();
     } else {
-      sim_data.mTFluidProperties.CreateExponentialDensityFunction();
+      fTFluidProperties.CreateExponentialDensityFunction();
     }
     if (properties.find("ReferencePressure") != properties.end()) {
-      sim_data.mTFluidProperties.mReferencePressure = properties["ReferencePressure"];
+      fTFluidProperties.fReferencePressure = properties["ReferencePressure"];
     }
   }
 
@@ -321,16 +366,13 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
   if (input.find("PetroPhysics") != input.end()) {
     auto petro = input["PetroPhysics"];
     if (petro.find("KrModel") == petro.end()) DebugStop();
-    sim_data.mTPetroPhysics.mKrModel = petro["KrModel"];
-    if (petro["KrModel"] == 2) {
-      if (petro.find("Swr") == petro.end()) DebugStop();
-      if (petro.find("Sor") == petro.end()) DebugStop();
-      sim_data.mTPetroPhysics.mSwr = petro["Swr"];
-      sim_data.mTPetroPhysics.mSor = petro["Sor"];
-      sim_data.mTPetroPhysics.CreateQuadraticResidualKrModel(); // It is necessary to call this method after the residual saturations are set
-    }
-    sim_data.mTPetroPhysics.mWaterViscosity = sim_data.mTFluidProperties.mWaterViscosity;
-    sim_data.mTPetroPhysics.mOilViscosity = sim_data.mTFluidProperties.mOilViscosity;
+    fTPetroPhysics.fKrModel = petro["KrModel"];
+    fTPetroPhysics.fSwr = petro["Swr"];
+    fTPetroPhysics.fSgr = petro["Sgr"];
+    fTPetroPhysics.CreateLinearKrModel();
+    fTPetroPhysics.CreateQuadraticKrModel(); // It is necessary to call these methods after the residual saturations are set
+    fTPetroPhysics.fWaterViscosity = fTFluidProperties.fWaterViscosity;
+    fTPetroPhysics.fGasViscosity = fTFluidProperties.fGasViscosity;
   }
 
   // ------------------------ Reservoir Properties ------------------------
@@ -338,65 +380,59 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     auto reservoir = input["ReservoirProperties"];
     if (reservoir.find("s0") != reservoir.end()) {
       auto s0 = reservoir["s0"];
-      TMRSPropertiesFunctions::EFunctionType s0_functionType = s0["functionType"];
-      REAL constant_val = s0["value"];
-      TMRSPropertiesFunctions reservoir_properties;
-      reservoir_properties.set_function_type_s0(s0_functionType, constant_val);
-      auto s0_function = reservoir_properties.Create_s0();
-      sim_data.mTReservoirProperties.s0 = s0_function;
+      TSFFunctionsGenerator::ES0FunctionType s0_functionType = s0["functionType"];
+      REAL constVal = s0["value"];
+      TSFFunctionsGenerator functionGen;
+      functionGen.SetS0FuncType(s0_functionType, constVal);
+      auto s0func = functionGen.CreateS0();
+      fTReservoirProperties.fS0 = s0func;
     }
   }
 
-  // ------------------------ Setting extra stuff that is still not in JSON ------------------------
-  const int D_Type = 0, N_Type = 1, Mixed_Type = 2;
-  // sim_data.mTGeometry.mInterface_material_id = 100;
-  // sim_data.mTGeometry.mInterface_material_idFracInf = 102;
-  // sim_data.mTGeometry.mInterface_material_idFracSup = 101;
-  // sim_data.mTGeometry.mInterface_material_idFracFrac = 103;
-  // sim_data.mTGeometry.mInterface_material_idFracBound = 104;
-
-  // sim_data.mTGeometry.mSkeletonDiv = 0;
-  sim_data.mTNumerics.m_sfi_tol = 1.e-8;
-  sim_data.mTNumerics.m_res_tol_transport = 1.e-8;
-  sim_data.mTNumerics.m_corr_tol_transport = 1.e-8;
-  sim_data.mTNumerics.m_res_tol_mixed = 1.e-8;
-  sim_data.mTNumerics.m_corr_tol_mixed = 1.e-8;
-  sim_data.mTNumerics.m_four_approx_spaces_Q = true;
-  sim_data.mTNumerics.m_nThreadsMixedProblem = glob_n_threads;
-  sim_data.mTNumerics.m_max_iter_sfi = 10;
-  sim_data.mTNumerics.m_max_iter_mixed = 10;
-  sim_data.mTNumerics.m_max_iter_transport = 10;
-
-  sim_data.mTPostProcess.m_file_name_mixed = "postdarcy.vtk";
-  sim_data.mTPostProcess.m_file_name_transport = "posttransport.vtk";
+  // ------------------------ Post Processing ------------------------
+  fTPostProcess.fFileNameDarcy = "postdarcy.vtk";
+  fTPostProcess.fFileNameTransport = "posttransport.vtk";
+  if (input.find("PostProcess") != input.end()) {
+    auto postprocess = input["PostProcess"];
+    if (postprocess.find("DarcyFileName") != postprocess.end()) {
+      fTPostProcess.fFileNameDarcy = postprocess["DarcyFileName"];
+    }
+    if (postprocess.find("TransportFileName") != postprocess.end()) {
+      fTPostProcess.fFileNameTransport = postprocess["TransportFileName"];
+    }
+    if (postprocess.find("PostProcessFrequency") != postprocess.end()) {
+      fTPostProcess.fPostProcessFrequency = postprocess["PostProcessFrequency"];
+    }
+  }
   TPZStack<std::string, 10> scalnames, vecnames, scalnamesTransport;
   vecnames.Push("Flux");
   scalnames.Push("Pressure");
   scalnames.Push("div_q");
-  if (sim_data.mTNumerics.m_four_approx_spaces_Q) {
+  if (fTNumerics.fFourApproxSpaces) {
     scalnames.Push("g_average");
     scalnames.Push("p_average");
   }
   scalnamesTransport.Push("Sw");
-  scalnamesTransport.Push("So");
+  scalnamesTransport.Push("Sg");
 
-  sim_data.mTPostProcess.m_vecnamesDarcy = vecnames;
-  sim_data.mTPostProcess.m_scalnamesDarcy = scalnames;
-  sim_data.mTPostProcess.m_scalnamesTransport = scalnamesTransport;
+  fTPostProcess.fVecnamesDarcy = vecnames;
+  fTPostProcess.fScalnamesDarcy = scalnames;
+  fTPostProcess.fScalnamesTransport = scalnamesTransport;
 
-  int n_steps = sim_data.mTNumerics.m_n_steps;
-  sim_data.mTPostProcess.m_file_time_step = sim_data.mTNumerics.m_dt;
-  REAL dt = sim_data.mTNumerics.m_dt;
+  int n_steps = fTNumerics.fNSteps;
+  fTPostProcess.fFileTimeStep = fTNumerics.fDt;
+  REAL dt = fTNumerics.fDt;
+  REAL time = fTPostProcess.fFileTimeStep;
+  const int freq = fTPostProcess.fPostProcessFrequency;
+  int n_reporting_times = (n_steps) / (time * freq / dt) + 1;
   TPZStack<REAL, 100> reporting_times;
-  REAL time = sim_data.mTPostProcess.m_file_time_step;
-  int n_reporting_times = (n_steps) / (time * 1 / dt) + 1;
   REAL r_time = 0.0;
-  int j = 1;
+  int j = freq;
   for (int i = 1; i <= n_reporting_times; i++) {
 
     r_time = j * dt * (time / dt);
     reporting_times.push_back(r_time);
-    j += 1;
+    j += freq;
   }
-  sim_data.mTPostProcess.m_vec_reporting_times = reporting_times;
+  fTPostProcess.fVecReportingTimes = reporting_times;
 }
