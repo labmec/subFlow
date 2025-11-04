@@ -134,3 +134,50 @@ void TSFDarcyAnalysis::Solve() {
   auto total_time_solve = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time_solve).count() / 1000.;
   std::cout << "---------Time to solve: " << total_time_solve << " seconds" << std::endl;
 }
+
+void TSFDarcyAnalysis::FillNeumannBCMatids(std::set<int>& neumannMatids) {
+  for (auto it = fSimData->fTBoundaryConditions.fBCDarcyMatIdToTypeValue.begin(); it != fSimData->fTBoundaryConditions.fBCDarcyMatIdToTypeValue.end(); ++it) {
+    int matid = it->first;
+    int bc_type = it->second.first;
+    if (bc_type == 1)
+      neumannMatids.insert(matid);
+  }
+}
+
+void TSFDarcyAnalysis::SetInitialSolution(std::set<int>& neumannMatids) {
+  fCompMesh->LoadReferences();
+  TPZGeoMesh* gmesh = fCompMesh->Reference();
+
+  TPZFMatrix<STATE> sol = fCompMesh->Solution();
+  for (auto el : gmesh->ElementVec()) {
+    int elMatID = el->MaterialId();
+
+    if (neumannMatids.find(elMatID) == neumannMatids.end())
+      continue;
+
+    TPZCompEl *compEl = el->Reference();
+
+    int64_t nConnects = compEl->NConnects();
+
+    if (nConnects != 1)
+      DebugStop();
+
+    int64_t seq = compEl->Connect(0).SequenceNumber();
+    int ncorner = el->NCornerNodes();
+    REAL volume = el->Volume();
+
+    auto firstEq = fCompMesh->Block().Position(seq);
+
+    int64_t blockSize = fCompMesh->Block().Size(seq);
+
+    REAL val = fSimData->fTBoundaryConditions.fBCDarcyMatIdToTypeValue[elMatID].second;
+    val *= volume / ncorner;
+    for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++) {
+      if (eq - firstEq < ncorner)
+        sol.PutVal(eq, 0, val);
+    }
+  }
+
+  fCompMesh->LoadSolution(sol);
+  fCompMesh->TransferMultiphysicsSolution();
+}

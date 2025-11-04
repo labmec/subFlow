@@ -59,6 +59,18 @@ public:
   /// override solve to have timers
   void Solve() override;
 
+  /// Fill the set of material ids related to Neumann BCs
+  /// This method is used to apply Neumann BCs without using BigNumbers
+  void FillNeumannBCMatids(std::set<int>& neumannMatids);
+
+  /// Set the initial solution based on the boundary conditions
+  /// This method is used to apply Neumann BCs without using BigNumbers
+  void SetInitialSolution(std::set<int>& neumannMatids);
+
+  /// Remove equations related to Neumann BCs from the system
+  /// This method is used to apply Neumann BCs without using BigNumbers
+  void ApplyEquationFilter(std::set<int>& neumannMatids);
+
   /// Verifies if the sum of the fluxes over all faces of an element is zero
   void VerifyElementFluxes();
 
