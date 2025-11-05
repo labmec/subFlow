@@ -33,6 +33,10 @@ void TSFDarcyAnalysis::Initialize() {
 #endif
   int n_threads = fSimData->fTNumerics.fNThreadsDarcyProblem;
   matrix.SetNumThreads(n_threads);
+  std::set<int> neumannMatids;
+  FillNeumannBCMatids(neumannMatids);
+  SetInitialSolution(neumannMatids);
+  ApplyEquationFilter(neumannMatids);
   SetStructuralMatrix(matrix);
   TPZStepSolver<STATE> step;
   step.SetDirect(ELDLt);
@@ -135,7 +139,7 @@ void TSFDarcyAnalysis::Solve() {
   std::cout << "---------Time to solve: " << total_time_solve << " seconds" << std::endl;
 }
 
-void TSFDarcyAnalysis::FillNeumannBCMatids(std::set<int>& neumannMatids) {
+void TSFDarcyAnalysis::FillNeumannBCMatids(std::set<int> &neumannMatids) {
   for (auto it = fSimData->fTBoundaryConditions.fBCDarcyMatIdToTypeValue.begin(); it != fSimData->fTBoundaryConditions.fBCDarcyMatIdToTypeValue.end(); ++it) {
     int matid = it->first;
     int bc_type = it->second.first;
@@ -144,9 +148,9 @@ void TSFDarcyAnalysis::FillNeumannBCMatids(std::set<int>& neumannMatids) {
   }
 }
 
-void TSFDarcyAnalysis::SetInitialSolution(std::set<int>& neumannMatids) {
+void TSFDarcyAnalysis::SetInitialSolution(std::set<int> &neumannMatids) {
   fCompMesh->LoadReferences();
-  TPZGeoMesh* gmesh = fCompMesh->Reference();
+  TPZGeoMesh *gmesh = fCompMesh->Reference();
 
   TPZFMatrix<STATE> sol = fCompMesh->Solution();
   for (auto el : gmesh->ElementVec()) {
@@ -180,4 +184,37 @@ void TSFDarcyAnalysis::SetInitialSolution(std::set<int>& neumannMatids) {
 
   fCompMesh->LoadSolution(sol);
   fCompMesh->TransferMultiphysicsSolution();
+}
+
+void TSFDarcyAnalysis::ApplyEquationFilter(std::set<int> &neumannMatids) {
+  std::set<int64_t> removeEquations;
+  TPZGeoMesh *gmesh = fCompMesh->Reference();
+  TPZFMatrix<STATE> sol = fCompMesh->Solution();
+  for (auto el : gmesh->ElementVec()) {
+    int elMatID = el->MaterialId();
+
+    if (neumannMatids.find(elMatID) == neumannMatids.end()) continue;
+
+    TPZCompEl *compEl = el->Reference();
+
+    int64_t nConnects = compEl->NConnects();
+
+    if (nConnects != 1)
+      DebugStop();
+
+    int64_t seq = compEl->Connect(0).SequenceNumber();
+    int ncorner = el->NCornerNodes();
+
+    auto firstEq = fCompMesh->Block().Position(seq);
+
+    int64_t blockSize = fCompMesh->Block().Size(seq);
+
+    for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++) {
+      removeEquations.insert(eq);
+    }
+  }
+
+  TPZEquationFilter filter(fCompMesh->NEquations());
+  filter.ExcludeEquations(removeEquations);
+  fStructMatrix->EquationFilter() = filter;
 }
