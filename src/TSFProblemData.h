@@ -75,7 +75,11 @@ public:
     /// material id for pressure lagrange multiplier (same as mortar because they should not be in the same mesh)
     int fPressureMatId = 20;
 
-    std::string fGmeshFileName = "";
+    /** @brief Flag to indicate if the mesh is read from a gmsh file */
+    bool fUseGMsh = true;
+
+    /** @brief gmsh file */
+    std::string fGmshFile = "";
 
     /** @brief Default constructor */
     TGeometry() {}
@@ -87,22 +91,15 @@ public:
     TGeometry(const TGeometry &other) {
       fDomainNameAndMatId = other.fDomainNameAndMatId;
       fInterface_material_id = other.fInterface_material_id;
-
       fPressureMatId = other.fPressureMatId;
-      /// material id for the Macro fluxes
       fSkeletonMatId = other.fSkeletonMatId;
-      /// material id for H(div) wrap materials
       fHdivWrapMatId = other.fHdivWrapMatId;
-      /// material id for the mortar pressure space
       fMortarMatId = other.fMortarMatId;
-      /// material id for a positive lagrange multiplier interface
       fPosLagrangeMatId = other.fPosLagrangeMatId;
-      /// material id for a negative lagrange multiplier interface
       fNegLagrangeMatId = other.fNegLagrangeMatId;
-      /// material id for a zero order H(div) boundary flux
       fZeroOrderHdivFluxMatId = other.fZeroOrderHdivFluxMatId;
-
-      fGmeshFileName = other.fGmeshFileName;
+      fUseGMsh = other.fUseGMsh;
+      fGmshFile = other.fGmshFile;
     }
     /** @brief Copy assignment operator*/
     TGeometry &operator=(const TGeometry &other) {
@@ -111,20 +108,14 @@ public:
         fDomainNameAndMatId = other.fDomainNameAndMatId;
         fInterface_material_id = other.fInterface_material_id;
         fPressureMatId = other.fPressureMatId;
-        /// material id for the Macro fluxes
         fSkeletonMatId = other.fSkeletonMatId;
-        /// material id for H(div) wrap materials
         fHdivWrapMatId = other.fHdivWrapMatId;
-        /// material id for the mortar pressure space
         fMortarMatId = other.fMortarMatId;
-        /// material id for a positive lagrange multiplier interface
         fPosLagrangeMatId = other.fPosLagrangeMatId;
-        /// material id for a negative lagrange multiplier interface
         fNegLagrangeMatId = other.fNegLagrangeMatId;
-        /// material id for a zero order H(div) boundary flux
         fZeroOrderHdivFluxMatId = other.fZeroOrderHdivFluxMatId;
-
-        fGmeshFileName = other.fGmeshFileName;
+        fUseGMsh = other.fUseGMsh;
+        fGmshFile = other.fGmshFile;
       }
       return *this;
     }
@@ -164,8 +155,6 @@ public:
       fLambdaw.resize(3);
       fLambdag.resize(3);
       fLambdaTotal.resize(3);
-      CreateLinearKrModel();
-      CreateQuadraticKrModel();
     }
 
     /** @brief Destructor */
@@ -407,8 +396,10 @@ public:
      * @brief Correction tolerance for transport
      */
     REAL fCorrTolTransport;
-
-    REAL fSfiTol;
+    /**
+     * @brief Tolerance for Sequential Fully Implicit (SFI) coupling
+     */
+    REAL fTolSFI;
     /**
      * @brief Maximum number of iterations per time step for darcy
      */
@@ -422,7 +413,7 @@ public:
     /**
      * @brief Maximum number of Sequential Fully Implicit (SFI) iterations per time step
      */
-    int fMaxIterSfi;
+    int fMaxIterSFI;
 
     /**
      * @brief Number of time steps
@@ -475,8 +466,8 @@ public:
       fCorrTolTransport = 1.0e-7;
       fMaxIterDarcy = 0;
       fMaxIterTransport = 0;
-      fMaxIterSfi = 0;
-      fSfiTol = 1.0e-3;
+      fMaxIterSFI = 0;
+      fTolSFI = 1.0e-3;
       fNSteps = 0;
       fFourApproxSpaces = false;
       fIsAxisymmetric = false;
@@ -501,8 +492,8 @@ public:
       fCorrTolTransport = other.fCorrTolTransport;
       fMaxIterDarcy = other.fMaxIterDarcy;
       fMaxIterTransport = other.fMaxIterTransport;
-      fMaxIterSfi = other.fMaxIterSfi;
-      fSfiTol = other.fSfiTol;
+      fMaxIterSFI = other.fMaxIterSFI;
+      fTolSFI = other.fTolSFI;
       fNSteps = other.fNSteps;
       fFourApproxSpaces = other.fFourApproxSpaces;
       fIsAxisymmetric = other.fIsAxisymmetric;
@@ -529,8 +520,8 @@ public:
       fCorrTolTransport = other.fCorrTolTransport;
       fMaxIterDarcy = other.fMaxIterDarcy;
       fMaxIterTransport = other.fMaxIterTransport;
-      fMaxIterSfi = other.fMaxIterSfi;
-      fSfiTol = other.fSfiTol;
+      fMaxIterSFI = other.fMaxIterSFI;
+      fTolSFI = other.fTolSFI;
       fNSteps = other.fNSteps;
       fFourApproxSpaces = other.fFourApproxSpaces;
       fIsAxisymmetric = other.fIsAxisymmetric;
@@ -565,8 +556,8 @@ public:
              fCorrTolTransport == other.fCorrTolTransport &&
              fMaxIterDarcy == other.fMaxIterDarcy &&
              fMaxIterTransport == other.fMaxIterTransport &&
-             fMaxIterSfi == other.fMaxIterSfi &&
-             fSfiTol == other.fSfiTol &&
+             fMaxIterSFI == other.fMaxIterSFI &&
+             fTolSFI == other.fTolSFI &&
              fNSteps == other.fNSteps &&
              fFourApproxSpaces == other.fFourApproxSpaces &&
              fIsAxisymmetric == other.fIsAxisymmetric &&
@@ -586,8 +577,8 @@ public:
       buf.Write(&fCorrTolDarcy);
       buf.Write(&fMaxIterDarcy);
       buf.Write(&fMaxIterTransport);
-      buf.Write(&fMaxIterSfi);
-      buf.Write(&fSfiTol);
+      buf.Write(&fMaxIterSFI);
+      buf.Write(&fTolSFI);
       buf.Write(&fNSteps);
       int temp = fFourApproxSpaces;
       buf.Write(&temp);
@@ -610,8 +601,8 @@ public:
       buf.Read(&fCorrTolTransport);
       buf.Read(&fMaxIterDarcy);
       buf.Read(&fMaxIterTransport);
-      buf.Read(&fMaxIterSfi);
-      buf.Read(&fSfiTol);
+      buf.Read(&fMaxIterSFI);
+      buf.Read(&fTolSFI);
       buf.Read(&fNSteps);
       int temp;
       buf.Read(&temp);
@@ -638,7 +629,7 @@ public:
       std::cout << fCorrTolTransport << std::endl;
       std::cout << fMaxIterDarcy << std::endl;
       std::cout << fMaxIterTransport << std::endl;
-      std::cout << fMaxIterSfi << std::endl;
+      std::cout << fMaxIterSFI << std::endl;
       std::cout << fNSteps << std::endl;
       std::cout << fFourApproxSpaces << std::endl;
       std::cout << fIsAxisymmetric << std::endl;
@@ -694,6 +685,16 @@ public:
     TPZStack<REAL, 100> fVecReportingTimes;
 
     /**
+     * @brief Number of threads used for post-processing
+     */
+    int fNThreads;
+
+    /**
+     * @brief VTK resolution for post-processing
+     */
+    int fvtkResolution = 0;
+
+    /**
      * @brief Default constructor
      */
     TPostProcess() {
@@ -707,6 +708,8 @@ public:
       fFileTimeStep = 0.0;
       fPostProcessFrequency = 1;
       fVecReportingTimes.Resize(0);
+      fNThreads = 0;
+      fvtkResolution = 0;
     }
     /**
      * @brief Destructor
@@ -726,6 +729,8 @@ public:
       fFileTimeStep = other.fFileTimeStep;
       fPostProcessFrequency = other.fPostProcessFrequency;
       fVecReportingTimes = other.fVecReportingTimes;
+      fNThreads = other.fNThreads;
+      fvtkResolution = other.fvtkResolution;
     }
     /**
      * @brief Copy assignment operator
@@ -744,6 +749,8 @@ public:
       fFileTimeStep = other.fFileTimeStep;
       fPostProcessFrequency = other.fPostProcessFrequency;
       fVecReportingTimes = other.fVecReportingTimes;
+      fNThreads = other.fNThreads;
+      fvtkResolution = other.fvtkResolution;
 
       return *this;
     }
@@ -761,7 +768,9 @@ public:
              fScalnamesTransport == other.fScalnamesTransport &&
              fFileTimeStep == other.fFileTimeStep &&
              fPostProcessFrequency == other.fPostProcessFrequency &&
-             fVecReportingTimes == other.fVecReportingTimes;
+             fVecReportingTimes == other.fVecReportingTimes &&
+             fNThreads == other.fNThreads &&
+             fvtkResolution == other.fvtkResolution;
     }
 
     void Write(TPZStream &buf, int withclassid) const { // ok
@@ -773,6 +782,8 @@ public:
       buf.Write(&fFileTimeStep);
       buf.Write(&fPostProcessFrequency);
       buf.Write(fVecReportingTimes);
+      buf.Write(&fNThreads);
+      buf.Write(&fvtkResolution);
     }
 
     void Read(TPZStream &buf, void *context) { // ok
@@ -784,6 +795,8 @@ public:
       buf.Read(&fFileTimeStep);
       buf.Read(&fPostProcessFrequency);
       buf.Read(fVecReportingTimes);
+      buf.Read(&fNThreads);
+      buf.Read(&fvtkResolution);
     }
 
     virtual int ClassId() const {
@@ -796,6 +809,8 @@ public:
       std::cout << fFileTimeStep << std::endl;
       std::cout << fPostProcessFrequency << std::endl;
       std::cout << fVecReportingTimes << std::endl;
+      std::cout << fNThreads << std::endl;
+      std::cout << fvtkResolution << std::endl;
     }
   };
 

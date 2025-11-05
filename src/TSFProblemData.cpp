@@ -212,11 +212,12 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
   json input = json::parse(filejson, nullptr, true, true); // to ignore comments in json file
 
   // ------------------------ Getting number of domains and fractures ------------------------
+  if (input.find("UseGMsh") == input.end()) DebugStop();
+  fTGeometry.fUseGMsh = input["UseGMsh"];
+  if (input["UseGMsh"])
+    fTGeometry.fGmshFile = input["MshFile"];
   if (input.find("Domains") == input.end()) DebugStop();
-  if (input.find("Mesh") == input.end()) DebugStop();
   const int ndom = input["Domains"].size();
-  std::string mesh = input["Mesh"];
-  fTGeometry.fGmeshFileName = mesh;
 
   // ------------------------ Reading 3D Domain matids ------------------------
   for (auto &domain : input["Domains"]) {
@@ -295,7 +296,8 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     fTNumerics.fResTolDarcy = 1.e-6;
     fTNumerics.fCorrTolDarcy = 1.e-6;
     fTNumerics.fFourApproxSpaces = true;
-    fTNumerics.fMaxIterSfi = 10;
+    fTNumerics.fMaxIterSFI = 10;
+    fTNumerics.fTolSFI = 1.e-6;
     fTNumerics.fMaxIterDarcy = 10;
     fTNumerics.fMaxIterTransport = 10;
     if (numerics.find("IsAxisymmetric") != numerics.end()) {
@@ -311,28 +313,28 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
       fTNumerics.fNThreadsDarcyProblem = numerics["NThreadsDarcy"];
     }
     if (numerics.find("MaxIterSFI") != numerics.end()) {
-      fTNumerics.fMaxIterSfi = numerics["MaxIterSFI"];
+      fTNumerics.fMaxIterSFI = numerics["MaxIterSFI"];
+    }
+    if (numerics.find("TolSFI") != numerics.end()) {
+      fTNumerics.fTolSFI = numerics["TolSFI"];
     }
     if (numerics.find("MaxIterDarcy") != numerics.end()) {
       fTNumerics.fMaxIterDarcy = numerics["MaxIterDarcy"];
-    }
-    if (numerics.find("MaxIterTransport") != numerics.end()) {
-      fTNumerics.fMaxIterTransport = numerics["MaxIterTransport"];
-    }
-    if (numerics.find("SFITol") != numerics.end()) {
-      fTNumerics.fSfiTol = numerics["SFITol"];
-    }
-    if (numerics.find("ResTolTransport") != numerics.end()) {
-      fTNumerics.fResTolTransport = numerics["ResTolTransport"];
-    }
-    if (numerics.find("CorrTolTransport") != numerics.end()) {
-      fTNumerics.fCorrTolTransport = numerics["CorrTolTransport"];
     }
     if (numerics.find("ResTolDarcy") != numerics.end()) {
       fTNumerics.fResTolDarcy = numerics["ResTolDarcy"];
     }
     if (numerics.find("CorrTolDarcy") != numerics.end()) {
       fTNumerics.fCorrTolDarcy = numerics["CorrTolDarcy"];
+    }
+    if (numerics.find("MaxIterTransport") != numerics.end()) {
+      fTNumerics.fMaxIterTransport = numerics["MaxIterTransport"];
+    }
+    if (numerics.find("ResTolTransport") != numerics.end()) {
+      fTNumerics.fResTolTransport = numerics["ResTolTransport"];
+    }
+    if (numerics.find("CorrTolTransport") != numerics.end()) {
+      fTNumerics.fCorrTolTransport = numerics["CorrTolTransport"];
     }
   }
 
@@ -402,6 +404,12 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     }
     if (postprocess.find("PostProcessFrequency") != postprocess.end()) {
       fTPostProcess.fPostProcessFrequency = postprocess["PostProcessFrequency"];
+    }
+    if (postprocess.find("NThreads") != postprocess.end()) {
+      fTPostProcess.fNThreads = postprocess["NThreads"];
+    }
+    if (postprocess.find("VTKResolution") != postprocess.end()) {
+      fTPostProcess.fvtkResolution = postprocess["VTKResolution"];
     }
   }
   TPZStack<std::string, 10> scalnames, vecnames, scalnamesTransport;
