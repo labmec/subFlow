@@ -7,6 +7,7 @@
 #include "TPZStream.h"
 #include "TSFFunctionsGenerator.h"
 #include "TSFSavable.h"
+#include "dirs_config.h"
 #include "json.hpp"
 #include "pzmanvector.h"
 #include "pzstack.h"
@@ -81,6 +82,9 @@ public:
     /** @brief gmsh file */
     std::string fGmshFile = "";
 
+    /** @brief problem dimension */
+    int fDimension = 2;
+
     /** @brief Default constructor */
     TGeometry() {}
 
@@ -100,6 +104,7 @@ public:
       fZeroOrderHdivFluxMatId = other.fZeroOrderHdivFluxMatId;
       fUseGMsh = other.fUseGMsh;
       fGmshFile = other.fGmshFile;
+      fDimension = other.fDimension;
     }
     /** @brief Copy assignment operator*/
     TGeometry &operator=(const TGeometry &other) {
@@ -116,6 +121,7 @@ public:
         fZeroOrderHdivFluxMatId = other.fZeroOrderHdivFluxMatId;
         fUseGMsh = other.fUseGMsh;
         fGmshFile = other.fGmshFile;
+        fDimension = other.fDimension;
       }
       return *this;
     }
@@ -454,7 +460,7 @@ public:
 
     TPZManVector<REAL, 3> fGravity;
 
-    int fNThreadsDarcyProblem = 0;
+    int fNThreadsDarcy = 0;
 
     /** @brief Default constructor */
     TNumerics() {
@@ -474,7 +480,7 @@ public:
       fIsLinearTrace = true;
       fSpaceType = ENone;
       fGravity.Resize(3, 0.0);
-      fNThreadsDarcyProblem = 0;
+      fNThreadsDarcy = 0;
       fMortarBorderElementPresOrder = 0;
       fMortarBorderElementFluxOrder = 0;
     }
@@ -500,7 +506,7 @@ public:
       fIsLinearTrace = other.fIsLinearTrace;
       fSpaceType = other.fSpaceType;
       fGravity = other.fGravity;
-      fNThreadsDarcyProblem = other.fNThreadsDarcyProblem;
+      fNThreadsDarcy = other.fNThreadsDarcy;
       fMortarBorderElementPresOrder = other.fMortarBorderElementPresOrder;
       fMortarBorderElementFluxOrder = other.fMortarBorderElementFluxOrder;
     }
@@ -528,7 +534,7 @@ public:
       fIsLinearTrace = other.fIsLinearTrace;
       fSpaceType = other.fSpaceType;
       fGravity = other.fGravity;
-      fNThreadsDarcyProblem = other.fNThreadsDarcyProblem;
+      fNThreadsDarcy = other.fNThreadsDarcy;
       fMortarBorderElementPresOrder = other.fMortarBorderElementPresOrder;
       fMortarBorderElementFluxOrder = other.fMortarBorderElementFluxOrder;
       return *this;
@@ -564,7 +570,7 @@ public:
              fIsLinearTrace == other.fIsLinearTrace &&
              fSpaceType == other.fSpaceType &&
              gravitCheck &&
-             fNThreadsDarcyProblem == other.fNThreadsDarcyProblem &&
+             fNThreadsDarcy == other.fNThreadsDarcy &&
              fMortarBorderElementPresOrder == other.fMortarBorderElementPresOrder &&
              fMortarBorderElementFluxOrder == other.fMortarBorderElementFluxOrder;
     }
@@ -589,7 +595,7 @@ public:
       temp = fSpaceType;
       buf.Write(&temp);
       buf.Write(fGravity);
-      buf.Write(fNThreadsDarcyProblem);
+      buf.Write(fNThreadsDarcy);
     }
 
     void Read(TPZStream &buf, void *context) { // ok
@@ -613,7 +619,7 @@ public:
       fIsLinearTrace = temp;
       buf.Read(&temp);
       fSpaceType = (MSpaceType)temp;
-      buf.Read(&fNThreadsDarcyProblem);
+      buf.Read(&fNThreadsDarcy);
     }
 
     virtual int ClassId() const {
@@ -635,7 +641,7 @@ public:
       std::cout << fIsAxisymmetric << std::endl;
       std::cout << fIsLinearTrace << std::endl;
       std::cout << fSpaceType << std::endl;
-      std::cout << fNThreadsDarcyProblem << std::endl;
+      std::cout << fNThreadsDarcy << std::endl;
     }
   };
 

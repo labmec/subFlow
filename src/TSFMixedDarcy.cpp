@@ -240,7 +240,7 @@ void TSFMixedDarcy::Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec, int
     return;
   }
 
-  if (var == 3) {
+  if (var == 5) {
     Solout[0] = div_u;
     return;
   }
@@ -250,15 +250,40 @@ void TSFMixedDarcy::Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec, int
     int g_avgb = 2;
     int p_avgb = 3;
 
-    if (var == 5) {
+    if (var == 14) {
       Solout[0] = datavec[g_avgb].sol[0][0];
       return;
     }
-    if (var == 6) {
+    if (var == 15) {
       Solout[0] = datavec[p_avgb].sol[0][0];
       return;
     }
   }
 
   DebugStop();
+}
+
+int TSFMixedDarcy::VariableIndex(const std::string &name) const {
+  if (!strcmp("Flux", name.c_str())) return 1;
+  if (!strcmp("Pressure", name.c_str())) return 2;
+  if (!strcmp("GradFluxX", name.c_str())) return 3;
+  if (!strcmp("GradFluxY", name.c_str())) return 4;
+  if (!strcmp("DivFlux", name.c_str())) return 5;
+  if (!strcmp("ExactPressure", name.c_str())) return 6;
+  if (!strcmp("ExactFlux", name.c_str())) return 7;
+  if (!strcmp("POrder", name.c_str())) return 8;
+  if (!strcmp("GradPressure", name.c_str())) return 9;
+  if (!strcmp("Divergence", name.c_str())) return 10;
+  if (!strcmp("ExactDiv", name.c_str())) return 11;
+  if (!strcmp("Derivative", name.c_str())) return 12;
+  if (!strcmp("Permeability", name.c_str())) return 13;
+  if (!strcmp("g_average", name.c_str())) return 14;
+  if (!strcmp("p_average", name.c_str())) return 15;
+  if (!strcmp("ExactFluxShiftedOrigin", name.c_str())) return 16;
+  if (!strcmp("EstimatedError", name.c_str())) return 100;
+  if (!strcmp("TrueError", name.c_str())) return 101;
+  if (!strcmp("EffectivityIndex", name.c_str())) return 102;
+  if (!strcmp("ExactDivSigma", name.c_str())) return 17;
+  DebugStop();
+  return -1;
 }

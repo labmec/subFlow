@@ -1,10 +1,10 @@
 {
     "UseGMsh": false,
     "MshFile": "",
+    "Dimension": 3,
     "Domains": [
         {
             "name": "dom",
-            "dimension": 3,
             "matid": 1,
             "K": 1.0,
             "phi": 1.0
@@ -13,7 +13,7 @@
     "Boundary": [
         {
             "name": "bottom",
-            "matid": 2,
+            "matid": 6,
             "type": 0, // imposed pressure
             "value": 0.0,
             "functionID": 0,
@@ -31,9 +31,9 @@
         },
         {
             "name": "top",
-            "matid": 4,
-            "type": 0, // imposed pressure
-            "value": 1.0,
+            "matid": 7,
+            "type": 1, // imposed pressure
+            "value": -1.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
@@ -49,7 +49,7 @@
         },
         {
             "name": "front",
-            "matid": 6,
+            "matid": 4,
             "type": 1, // imposed flux
             "value": 0.0,
             "functionID": 0,
@@ -58,7 +58,7 @@
         },
         {
             "name": "back",
-            "matid": 7,
+            "matid": 2,
             "type": 1, // imposed flux
             "value": 0.0,
             "functionID": 0,
@@ -77,8 +77,8 @@
         ],
         "IsAxisymmetric": false,
         "IsLinearTrace": false,
-        "FourApproxSpaces": true,
-        "NThreadsDarcyProblem": 0,
+        "FourApproxSpaces": false,
+        "NThreadsDarcy": 0,
         "MaxIterSFI": 1,
         "TolSFI": 1.0e-6,
         "MaxIterDarcy": 10,
@@ -101,7 +101,7 @@
     "PetroPhysics": {
         "KrModel": 1, // 0: Linear, 1: Quadratic
         "Swr": 0.0, // Residual water saturation
-        "Sor": 0.0 // Residual oil saturation
+        "Sgr": 0.0 // Residual oil saturation
     },
     "ReservoirProperties": {
         "s0": {

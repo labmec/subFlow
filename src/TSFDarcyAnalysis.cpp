@@ -31,13 +31,14 @@ void TSFDarcyAnalysis::Initialize() {
 #else
   TPZSkylineStructMatrix<STATE> matrix(fCompMesh);
 #endif
-  int n_threads = fSimData->fTNumerics.fNThreadsDarcyProblem;
+  int n_threads = fSimData->fTNumerics.fNThreadsDarcy;
   matrix.SetNumThreads(n_threads);
+  SetStructuralMatrix(matrix);
   std::set<int> neumannMatids;
   FillNeumannBCMatids(neumannMatids);
   SetInitialSolution(neumannMatids);
   ApplyEquationFilter(neumannMatids);
-  SetStructuralMatrix(matrix);
+  int nreducedeq = fStructMatrix->NReducedEquations();
   TPZStepSolver<STATE> step;
   step.SetDirect(ELDLt);
   SetSolver(step);
@@ -76,6 +77,7 @@ void TSFDarcyAnalysis::RunTimeStep() {
         break;
       }
     }
+    Solve();
     TPZFMatrix<STATE> dsol = Solution();
     corr_norm = Norm(dsol);
     sol += dsol;
@@ -89,7 +91,6 @@ void TSFDarcyAnalysis::RunTimeStep() {
 }
 
 void TSFDarcyAnalysis::PostProcessTimeStep(int dimToPost, int step) {
-  const int dim = Mesh()->Dimension();
   auto start_time_pp = std::chrono::steady_clock::now();
 
   TPZStack<std::string, 10> scalnames, vecnames;
@@ -103,8 +104,7 @@ void TSFDarcyAnalysis::PostProcessTimeStep(int dimToPost, int step) {
   }
 
   std::string file = fSimData->fTPostProcess.fFileNameDarcy;
-
-  constexpr int vtkRes{0};
+  const int vtkRes = fSimData->fTPostProcess.fvtkResolution;
 
   const std::string plotfile = file.substr(0, file.find(".")); // sem o .vtk no final
   for (auto nm : vecnames) {
@@ -113,7 +113,7 @@ void TSFDarcyAnalysis::PostProcessTimeStep(int dimToPost, int step) {
 
   auto vtk = TPZVTKGenerator(fCompMesh, scalnames, plotfile, vtkRes, dimToPost);
   vtk.SetStep(step);
-  int nthreads = fSimData->fTNumerics.fNThreadsDarcyProblem;
+  int nthreads = fSimData->fTPostProcess.fNThreads;
   vtk.SetNThreads(nthreads);
   vtk.Do();
 
@@ -184,6 +184,7 @@ void TSFDarcyAnalysis::SetInitialSolution(std::set<int> &neumannMatids) {
 
   fCompMesh->LoadSolution(sol);
   fCompMesh->TransferMultiphysicsSolution();
+  Solution() = sol;
 }
 
 void TSFDarcyAnalysis::ApplyEquationFilter(std::set<int> &neumannMatids) {

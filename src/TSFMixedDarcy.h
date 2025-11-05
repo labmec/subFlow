@@ -100,6 +100,12 @@ public:
    */
   void Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec, int var, TPZVec<STATE> &Solout) override;
 
+  /**
+   * @brief Returns an integer associated with a post-processing variable name
+   * @param [in] name string containing the name of the post-processing variable. Ex: "Pressure".
+   */
+  [[nodiscard]] int VariableIndex(const std::string &name) const override;
+
 protected:
   bool fIsAxisymmetric;
   bool fFourSpaces;

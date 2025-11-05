@@ -208,7 +208,8 @@ void TSFProblemData::TPetroPhysics::UpdateLambdasAndFracFlows(int krModel) {
 void TSFProblemData::ReadJSONFile(std::string filename) {
   using json = nlohmann::json;
 
-  std::ifstream filejson(filename);
+  std::string jsonpath = std::string(INPUTDIR) + "/" + filename;
+  std::ifstream filejson(jsonpath);
   json input = json::parse(filejson, nullptr, true, true); // to ignore comments in json file
 
   // ------------------------ Getting number of domains and fractures ------------------------
@@ -217,7 +218,7 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
   if (input["UseGMsh"])
     fTGeometry.fGmshFile = input["MshFile"];
   if (input.find("Domains") == input.end()) DebugStop();
-  const int ndom = input["Domains"].size();
+  fTGeometry.fDimension = input["Dimension"];
 
   // ------------------------ Reading 3D Domain matids ------------------------
   for (auto &domain : input["Domains"]) {
@@ -254,7 +255,7 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     }
     REAL external_saturation = 0.0;
     int saturation_functionID = 0;
-    if (input["Numerics"]["RunWithTransport"]) {
+    if (input["Numerics"]["AnalysisType"] != 0) { // If transport problem is being solved
       if (bc.find("ExternalSaturation") == bc.end()) DebugStop();
       external_saturation = bc["ExternalSaturation"];
       if (bc.find("SaturationFunctionID") != bc.end()) {
@@ -309,8 +310,8 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     if (numerics.find("FourApproxSpaces") != numerics.end()) {
       fTNumerics.fFourApproxSpaces = numerics["FourApproxSpaces"];
     }
-    if (numerics.find("NThreadsDarcyProblem") != numerics.end()) {
-      fTNumerics.fNThreadsDarcyProblem = numerics["NThreadsDarcy"];
+    if (numerics.find("NThreadsDarcy") != numerics.end()) {
+      fTNumerics.fNThreadsDarcy = numerics["NThreadsDarcy"];
     }
     if (numerics.find("MaxIterSFI") != numerics.end()) {
       fTNumerics.fMaxIterSFI = numerics["MaxIterSFI"];
@@ -415,7 +416,7 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
   TPZStack<std::string, 10> scalnames, vecnames, scalnamesTransport;
   vecnames.Push("Flux");
   scalnames.Push("Pressure");
-  scalnames.Push("div_q");
+  scalnames.Push("DivFlux");
   if (fTNumerics.fFourApproxSpaces) {
     scalnames.Push("g_average");
     scalnames.Push("p_average");
