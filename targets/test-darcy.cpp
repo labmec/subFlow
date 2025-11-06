@@ -65,7 +65,7 @@ int main(int argc, char *const argv[]) {
 
 // Initialize logger
 #ifdef PZ_LOG
-  TPZLogger::InitializePZLOG();
+  TPZLogger::InitializePZLOG("subFlow-log.cfg");
 #endif
 
   // Initialize uniform refinements for 1D and 2D elements
@@ -84,10 +84,14 @@ int main(int argc, char *const argv[]) {
   TPZGeoMesh *gmesh = nullptr;
   if (!simData.fTGeometry.fUseGMsh) {
     if (simData.fTGeometry.fDimension == 2) {
-      gmesh = createGeoMesh2D({3, 3}, {0., 0.}, {1., 1.});
+      gmesh = createGeoMesh2D({1, 1}, {0., 0.}, {1., 1.});
     } else {
       gmesh = createGeoMesh3D({1, 1, 1}, {0., 0., 0.}, {1., 1., 1.});
     }
+  }
+  {
+    std::ofstream out("gmesh.vtk");
+    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, out);
   }
 
   if (isNL) {
@@ -109,10 +113,6 @@ TPZGeoMesh *createGeoMesh3D(const TPZManVector<int, 3> &nelDiv, const TPZManVect
 
   generator.BuildVolumetricElements(EMatId);
   TPZGeoMesh *gmesh = generator.BuildBoundaryElements(EBottom, ELeft, EFront, ERight, EBack, ETop);
-  {
-    std::ofstream out("gmesh3d.vtk");
-    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, out);
-  }
 
   return gmesh;
 }
@@ -140,6 +140,7 @@ TPZMultiphysicsCompMesh *createCompMeshMixed(TPZGeoMesh *gmesh, int order, bool 
   hdivCreator.SetDefaultOrder(order);
   if (simData->fTNumerics.fFourApproxSpaces) {
     hdivCreator.SetShouldCondense(true);
+    hdivCreator.IsRigidBodySpaces() = true;
   } else {
     hdivCreator.SetShouldCondense(false);
   }

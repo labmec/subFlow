@@ -1,7 +1,7 @@
 {
     "UseGMsh": false,
     "MshFile": "",
-    "Dimension": 3,
+    "Dimension": 2,
     "Domains": [
         {
             "name": "dom",
@@ -32,8 +32,8 @@
         {
             "name": "top",
             "matid": 7,
-            "type": 1, // imposed pressure
-            "value": -1.0,
+            "type": 0, // imposed flux
+            "value": 1.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
@@ -77,7 +77,7 @@
         ],
         "IsAxisymmetric": false,
         "IsLinearTrace": false,
-        "FourApproxSpaces": false,
+        "FourApproxSpaces": true,
         "NThreadsDarcy": 0,
         "MaxIterSFI": 1,
         "TolSFI": 1.0e-6,

@@ -188,6 +188,7 @@ void TSFDarcyAnalysis::SetInitialSolution(std::set<int> &neumannMatids) {
 }
 
 void TSFDarcyAnalysis::ApplyEquationFilter(std::set<int> &neumannMatids) {
+  fCompMesh->LoadReferences();
   std::set<int64_t> removeEquations;
   TPZGeoMesh *gmesh = fCompMesh->Reference();
   TPZFMatrix<STATE> sol = fCompMesh->Solution();
