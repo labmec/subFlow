@@ -32,8 +32,8 @@
         {
             "name": "top",
             "matid": 7,
-            "type": 0, // imposed flux
-            "value": 1.0,
+            "type": 1, // imposed flux
+            "value": -1.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0

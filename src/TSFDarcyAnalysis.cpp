@@ -152,7 +152,7 @@ void TSFDarcyAnalysis::SetInitialSolution(std::set<int> &neumannMatids) {
   fCompMesh->LoadReferences();
   TPZGeoMesh *gmesh = fCompMesh->Reference();
 
-  TPZFMatrix<STATE> sol = fCompMesh->Solution();
+  TPZFMatrix<STATE> &cmesh_sol = fCompMesh->Solution();
   for (auto el : gmesh->ElementVec()) {
     int elMatID = el->MaterialId();
 
@@ -178,13 +178,20 @@ void TSFDarcyAnalysis::SetInitialSolution(std::set<int> &neumannMatids) {
     val *= volume / ncorner;
     for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++) {
       if (eq - firstEq < ncorner)
-        sol.PutVal(eq, 0, val);
+        cmesh_sol.PutVal(eq, 0, val);
     }
   }
 
-  fCompMesh->LoadSolution(sol);
   fCompMesh->TransferMultiphysicsSolution();
-  Solution() = sol;
+
+  // When the internal dofs are condensed, the analysis solution size is different from the cmesh solution size
+  // Analysis only holds the independent equations, while cmesh holds all equations
+  // The independent equations are stored first in the cmesh solution vector, so we just need to copy them to the analysis solution
+  int cmesh_neq = fCompMesh->NEquations();
+  TPZFMatrix<STATE> &sol = Solution();
+  for (int i = 0; i < cmesh_neq; i++) {
+    sol.PutVal(i, 0, cmesh_sol.GetVal(i, 0));
+  }
 }
 
 void TSFDarcyAnalysis::ApplyEquationFilter(std::set<int> &neumannMatids) {
