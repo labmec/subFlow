@@ -280,7 +280,10 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
   // ------------------------ Numerics Parameters ------------------------
   if (input.find("Numerics") != input.end()) {
     auto numerics = input["Numerics"];
+    if (numerics.find("AnalysisType") == numerics.end()) DebugStop();
     fTNumerics.fAnalysisType = numerics["AnalysisType"];
+    if (numerics.find("FluxOrder") != numerics.end())
+      fTNumerics.fFluxOrder = numerics["FluxOrder"];
     if (numerics.find("DeltaT") == numerics.end()) DebugStop();
     fTNumerics.fDt = numerics["DeltaT"];
     if (numerics.find("NSteps") == numerics.end()) DebugStop();

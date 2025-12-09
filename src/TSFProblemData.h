@@ -384,6 +384,11 @@ public:
     int fAnalysisType;
 
     /**
+     * @brief Order of the flux approximation for the Mixed Darcy problem
+     */
+    int fFluxOrder;
+
+    /**
      * @brief Residual tolerance for Darcy
      */
     REAL fResTolDarcy;
@@ -466,6 +471,7 @@ public:
     TNumerics() {
       fDt = 0.0;
       fAnalysisType = 3;
+      fFluxOrder = 1;
       fResTolDarcy = 1.0e-4;
       fResTolTransport = 1.0e-7;
       fCorrTolDarcy = 1.0e-4;
@@ -492,6 +498,7 @@ public:
     TNumerics(const TNumerics &other) {
       fDt = other.fDt;
       fAnalysisType = other.fAnalysisType;
+      fFluxOrder = other.fFluxOrder;
       fResTolDarcy = other.fResTolDarcy;
       fResTolTransport = other.fResTolTransport;
       fCorrTolDarcy = other.fCorrTolDarcy;
@@ -520,6 +527,7 @@ public:
 
       fDt = other.fDt;
       fAnalysisType = other.fAnalysisType;
+      fFluxOrder = other.fFluxOrder;
       fResTolDarcy = other.fResTolDarcy;
       fResTolTransport = other.fResTolTransport;
       fCorrTolDarcy = other.fCorrTolDarcy;
@@ -556,6 +564,7 @@ public:
 
       return fDt == other.fDt &&
              fAnalysisType == other.fAnalysisType &&
+             fFluxOrder == other.fFluxOrder &&
              fResTolDarcy == other.fResTolDarcy &&
              fResTolTransport == other.fResTolTransport &&
              fCorrTolDarcy == other.fCorrTolDarcy &&
@@ -578,6 +587,7 @@ public:
     void Write(TPZStream &buf, int withclassid) const { // ok
       buf.Write(&fDt);
       buf.Write(&fAnalysisType);
+      buf.Write(&fFluxOrder);
       buf.Write(&fResTolDarcy);
       buf.Write(&fResTolTransport);
       buf.Write(&fCorrTolDarcy);
@@ -601,6 +611,7 @@ public:
     void Read(TPZStream &buf, void *context) { // ok
       buf.Read(&fDt);
       buf.Read(&fAnalysisType);
+      buf.Read(&fFluxOrder);
       buf.Read(&fResTolDarcy);
       buf.Read(&fResTolTransport);
       buf.Read(&fCorrTolDarcy);
@@ -629,6 +640,7 @@ public:
     void Print() const {
       std::cout << fDt << std::endl;
       std::cout << fAnalysisType << std::endl;
+      std::cout << fFluxOrder << std::endl;
       std::cout << fResTolDarcy << std::endl;
       std::cout << fResTolTransport << std::endl;
       std::cout << fCorrTolDarcy << std::endl;

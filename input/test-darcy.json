@@ -67,7 +67,8 @@
         }
     ],
     "Numerics": {
-        "AnalysisType": 0, //0: Darcy, 1: Transport, 2: Coupled 
+        "AnalysisType": 0, //0: Darcy, 1: Transport, 2: Coupled
+        "FluxOrder": 1,
         "DeltaT": 1.0,
         "NSteps": 1,
         "Gravity": [
