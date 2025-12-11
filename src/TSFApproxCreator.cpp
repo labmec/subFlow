@@ -106,8 +106,135 @@ void TSFApproxCreator::CondenseElements(TPZCompMesh *cmesh, char LagrangeLevelNo
   cmesh->CleanUpUnconnectedNodes();
 }
 
-void TSFApproxCreator::BuildAuxTransportCmesh() {
+void TSFApproxCreator::BuildTransportCmesh() {
   int dimension = fSimData->fTGeometry.fDimension;
 
-  fTransportMesh = new TPZCompMesh(TPZHDivApproxCreator::fGeoMesh); // This mesh is only used to set the interface elements
+  fTransportMesh = new TPZCompMesh(TPZHDivApproxCreator::fGeoMesh);
+  fTransportMesh->SetDimModel(dimension);
+  fTransportMesh->SetDefaultOrder(0);
+  fTransportMesh->SetAllCreateFunctionsDiscontinuous();
+
+  // Insert materials
+  TSFTransportMaterial *matTransport = nullptr;
+  std::map<std::string, int> &domainNameAndMatId = fSimData->fTGeometry.fDomainNameAndMatId;
+  for (const auto &domainPair : domainNameAndMatId) {
+    std::string name = domainPair.first;
+    int matId = domainPair.second;
+    matTransport = new TSFTransportMaterial(matId, dimension);
+    fTransportMesh->InsertMaterialObject(matTransport);
+  }
+
+  // Insert boundary conditions
+  std::map<int, std::pair<int, REAL>> &BCTransportMatIdToTypeValue = fSimData->fTBoundaryConditions.fBCTransportMatIdToTypeValue;
+  for (const auto &bcPair : BCTransportMatIdToTypeValue) {
+    int bcMatId = bcPair.first;
+    int bcType = bcPair.second.first;
+    REAL bcValue = bcPair.second.second;
+    TPZManVector<REAL, 1> val2(1, bcValue); // Part that goes to the RHS vector
+    TPZFMatrix<REAL> val1(1, 1, 0.);        // Part that goes to the Stiffnes matrix
+    TPZBndCondT<REAL> *bcond = matTransport->CreateBC(matTransport, bcMatId, bcType, val1, val2);
+    fTransportMesh->InsertMaterialObject(bcond);
+  }
+
+  fTransportMesh->AutoBuild();
+  fTransportMesh->LoadReferences();
+
+  // Insert interface
+  int interfaceMatId = fSimData->fTGeometry.fInterface_material_id;
+  TSFTransportMaterial *matInterface = new TSFTransportMaterial(interfaceMatId, dimension - 1);
+  fTransportMesh->InsertMaterialObject(matInterface);
+  CreateInterfaceElements();
+
+  {
+    std::ofstream out("TransportMeshWithInterfaces.txt");
+    TPZVTKGeoMesh::PrintCMeshVTK(fTransportMesh, out);
+    fTransportMesh->Print(out);
+  }
+}
+
+void TSFApproxCreator::CreateInterfaceElements() {
+  TPZGeoMesh *gmesh = TPZHDivApproxCreator::fGeoMesh;
+  int dim = gmesh->Dimension();
+  int64_t nel = gmesh->NElements();
+  int interfaceMatId = fSimData->fTGeometry.fInterface_material_id;
+
+  std::map<int, std::pair<int, REAL>> &BCTransportMatIdToTypeValue = fSimData->fTBoundaryConditions.fBCTransportMatIdToTypeValue;
+  std::set<int> bcMatIds;
+  for (const auto &bcPair : BCTransportMatIdToTypeValue) {
+    int bcMatId = bcPair.first;
+    bcMatIds.insert(bcMatId);
+  }
+
+  // Interface Element between boundary and domain elements
+  for (auto const &BcMatID : bcMatIds) {
+    for (int64_t el = 0; el < nel; el++) {
+      int meshDim = gmesh->Dimension();
+
+      TPZGeoEl *geoEl = gmesh->Element(el);
+      int matID = geoEl->MaterialId();
+
+      if (matID != BcMatID) continue;
+
+      int nSides = geoEl->NSides();
+      TPZGeoElSide geoElSide(geoEl, nSides - 1);
+      TPZCompElSide compElSide = geoElSide.Reference();
+
+      TPZStack<TPZGeoElSide> neighbourSet;
+      geoElSide.AllNeighbours(neighbourSet);
+
+      int64_t nneighs = neighbourSet.size();
+
+      for (int stack_i = 0; stack_i < nneighs; stack_i++) {
+        TPZGeoElSide neighbour = neighbourSet[stack_i];
+        int neighMatID = neighbour.Element()->MaterialId();
+        TPZCompElSide compElNeigh = neighbour.Reference();
+
+        int64_t neighIndex = neighbour.Element()->Index();
+
+        if (neighbour.Element()->Dimension() != meshDim) continue;
+
+        if (neighbour.Element()->HasSubElement())
+          DebugStop();
+
+        TPZGeoElBC gbc(neighbour, interfaceMatId);
+        TPZInterfaceElement *mp_interface_el = new TPZInterfaceElement(*fTransportMesh, gbc.CreatedElement(), compElSide, compElNeigh);
+      }
+    }
+  }
+
+  // Interface Element between domain neighbour elements
+  for (int64_t el = 0; el < nel; el++) {
+    TPZGeoEl *geoEl = gmesh->Element(el);
+
+    if (!geoEl) continue;
+    if (geoEl->HasSubElement()) continue;
+    if (geoEl->Dimension() != dim) continue;
+
+    int nside = geoEl->NSides();
+
+    for (int side = 0; side < nside - 1; side++) {
+      if (geoEl->SideDimension(side) != dim - 1) continue;
+
+      TPZGeoElSide geoElSide(geoEl, side);
+      TPZCompElSide compElSide = geoElSide.Reference();
+      TPZGeoElSide neighbour = geoElSide.Neighbour();
+
+      if (neighbour == geoElSide) continue;
+      if (neighbour.Element()->HasSubElement()) continue;
+
+      while (neighbour != geoElSide) {
+        if (neighbour.Element()->MaterialId() == interfaceMatId) {
+          break;
+        } else if (neighbour.Element()->Dimension() == gmesh->Dimension()) {
+          TPZGeoElBC gbc(geoElSide, interfaceMatId);
+          TPZCompElSide compElNeigh = neighbour.Reference();
+          TPZInterfaceElement *mp_interface_el = new TPZInterfaceElement(*fTransportMesh, gbc.CreatedElement(), compElSide, compElNeigh);
+          break;
+        }
+        neighbour = neighbour.Neighbour();
+      }
+    }
+  }
+
+  gmesh->BuildConnectivity();
 }

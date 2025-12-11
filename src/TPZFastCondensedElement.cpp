@@ -7,16 +7,6 @@
 //
 
 #include "TPZFastCondensedElement.h"
-#include "TMRSDarcyFractureFlowWithMem_impl.h"
-#include "TMRSDarcyMemory.h"
-#include "TMRSMemory.h"
-#include "TMRSTransportMemory.h"
-#include "TPZDarcyFlowWithMem.h"
-#include "TPZMixedDarcyWithFourSpaces.h"
-#include "TPZSSpMatrixEigen.h"
-#include "pzcmesh.h"
-#include "pzlog.h"
-#include "pzmultiphysicselement.h"
 
 #ifdef LOG4CXX
 static LoggerPtr logger(Logger::getLogger("pz.mesh.tpzcondensedcompel"));

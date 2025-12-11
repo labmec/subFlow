@@ -1,8 +1,12 @@
 #include "TPZFastCondensedElement.h"
 #include "TPZHDivApproxCreator.h"
+#include "TPZInterfaceEl.h"
+#include "TPZMatInterfaceSingleSpace.h"
 #include "TPZMultiphysicsCompMesh.h"
+#include "TPZVTKGeoMesh.h"
 #include "TSFMixedDarcy.h"
 #include "TSFProblemData.h"
+#include "TSFTransportMaterial.h"
 
 class TSFApproxCreator : public TPZHDivApproxCreator {
 public:
@@ -27,10 +31,10 @@ public:
   void CondenseElements(TPZCompMesh *cmesh, char LagrangeLevelNotCondensed, bool keepmatrix = true);
 
   /// Creates auxiliary cmesh for transport. Mostly used to identify interfaces
-  void BuildAuxTransportCmesh();
+  void BuildTransportCmesh();
 
   /// insert the necessary interface elements
-  void InsertInterfaceElements();
+  void CreateInterfaceElements();
 
 protected:
   TSFProblemData *fSimData;

@@ -9,8 +9,11 @@
 #pragma once
 
 #include "TPZElementMatrixT.h"
+#include "pzcmesh.h"
 #include "pzcondensedcompel.h"
+#include "pzelementgroup.h"
 #include "pzelmat.h"
+#include "pzmultiphysicscompel.h"
 
 class TPZFastCondensedElement : public TPZCondensedCompElT<REAL> {
 
