@@ -1,0 +1,100 @@
+{
+    "UseGMsh": true,
+    "MshFile": "test-transport.msh",
+    "Dimension": 2,
+    "Domains": [
+        {
+            "name": "dom",
+            "matid": 1,
+            "K": 1.0,
+            "phi": 1.0
+        }
+    ],
+    "Boundary": [
+        {
+            "name": "bottom",
+            "matid": 2,
+            "type": 0, // imposed pressure
+            "value": 1.0,
+            "functionID": 0,
+            "ExternalSaturation": 1.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "right",
+            "matid": 3,
+            "type": 1, // imposed flux
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 0.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "top",
+            "matid": 4,
+            "type": 0, // imposed pressure
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 0.0,
+            "SaturationFunctionID": 0
+        },
+        {
+            "name": "left",
+            "matid": 5,
+            "type": 1, // imposed flux
+            "value": 0.0,
+            "functionID": 0,
+            "ExternalSaturation": 0.0,
+            "SaturationFunctionID": 0
+        }
+    ],
+    "Numerics": {
+        "AnalysisType": 1, //0: Darcy, 1: Transport, 2: Coupled
+        "FluxOrder": 1,
+        "DeltaT": 1.0,
+        "NSteps": 1,
+        "Gravity": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "IsAxisymmetric": false,
+        "IsLinearTrace": true,
+        "FourApproxSpaces": true,
+        "NThreadsDarcy": 0,
+        "MaxIterSFI": 1,
+        "TolSFI": 1.0e-6,
+        "MaxIterDarcy": 10,
+        "ResTolDarcy": 1.0e-6,
+        "CorrTolDarcy": 1.0e-6,
+        "MaxIterTransport": 10,
+        "ResTolTransport": 1.0e-6,
+        "CorrTolTransport": 1.0e-6
+    },
+    "FluidProperties": {
+        "WaterDensity": 1.0,
+        "WaterViscosity": 1.0,
+        "WaterCompressibility": 0,
+        "GasDensity": 1.0,
+        "GasViscosity": 1.0,
+        "GasCompressibility": 0,
+        "DensityModel": 0, // 0: Linear, 1: Exponential
+        "ReferencePressure": 0.0
+    },
+    "PetroPhysics": {
+        "KrModel": 1, // 0: Linear, 1: Quadratic
+        "Swr": 0.0, // Residual water saturation
+        "Sgr": 0.0 // Residual oil saturation
+    },
+    "ReservoirProperties": {
+        "s0": {
+            "functionType": 0,
+            "value": 0.0 //This variable plays different roles according to the functionType
+        }
+    },
+    "PostProcess": {
+        "PostProcessFrequency": 1,
+        "NThreads": 0,
+        "VTKResolution": 0
+    }
+}

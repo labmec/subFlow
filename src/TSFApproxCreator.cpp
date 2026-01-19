@@ -144,12 +144,6 @@ void TSFApproxCreator::BuildTransportCmesh() {
   TSFTransportMaterial *matInterface = new TSFTransportMaterial(interfaceMatId, dimension - 1);
   fTransportMesh->InsertMaterialObject(matInterface);
   CreateInterfaceElements();
-
-  {
-    std::ofstream out("TransportMeshWithInterfaces.txt");
-    TPZVTKGeoMesh::PrintCMeshVTK(fTransportMesh, out);
-    fTransportMesh->Print(out);
-  }
 }
 
 void TSFApproxCreator::CreateInterfaceElements() {
@@ -237,4 +231,8 @@ void TSFApproxCreator::CreateInterfaceElements() {
   }
 
   gmesh->BuildConnectivity();
+}
+
+TPZCompMesh *TSFApproxCreator::GetTransportCmesh() {
+  return fTransportMesh;
 }

@@ -36,6 +36,8 @@ public:
   /// insert the necessary interface elements
   void CreateInterfaceElements();
 
+  TPZCompMesh *GetTransportCmesh();
+
 protected:
   TSFProblemData *fSimData;
 
