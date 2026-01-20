@@ -8,6 +8,7 @@
 #include "TPZSkylineNSymStructMatrix.h"
 #include "TPZSpStructMatrix.h"
 #include "TPZYSMPMatrix.h"
+#include "TSFAlgebraicTransport.h"
 #include "TSFProblemData.h"
 #include "pzcmesh.h"
 #include "pzstepsolver.h"
@@ -18,6 +19,9 @@ class TSFTransportAnalysis : public TPZLinearAnalysis {
 public:
   /// Data transfer object
   TSFProblemData *fSimData;
+
+  /// Algebraic transport object
+  TSFAlgebraicTransport fAlgebraicTransport;
 
   /// Number of iterations
   int fKiteration = 0;

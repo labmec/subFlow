@@ -34,13 +34,8 @@ void TSFTransportAnalysis::Initialize() {
   int n_threads = fSimData->fTNumerics.fNThreadsDarcy;
   matrix.SetNumThreads(n_threads);
   SetStructuralMatrix(matrix);
-  std::set<int> neumannMatids;
-  FillNeumannBCMatids(neumannMatids);
-  SetInitialSolution(neumannMatids);
-  ApplyEquationFilter(neumannMatids);
-  int nreducedeq = fStructMatrix->NReducedEquations();
   TPZStepSolver<STATE> step;
-  step.SetDirect(ELDLt);
+  step.SetDirect(ELU);
   SetSolver(step);
 
   std::cout << "Number of equations: " << fCompMesh->NEquations() << std::endl;
