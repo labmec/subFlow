@@ -37,6 +37,9 @@ public:
   /// Hold the saturation solution
   TPZFMatrix<STATE> fTransportSolution;
 
+  /// Default constructor
+  TSFSFIAnalysis();
+
   /// Constructor based on a cmesh and optimization band directive
   TSFSFIAnalysis(TPZMultiphysicsCompMesh *darcy_cmesh, TPZCompMesh *transport_cmesh, const RenumType &renumtype = RenumType::EDefault);
 
@@ -44,4 +47,13 @@ public:
 
   /// Set data transfer object
   void SetProblemData(TSFProblemData *simData);
+
+  /// Initialize the SFI data transfer structure
+  void Initialize();
+
+  /// Build the data transfer structure between subproblems
+  void InitializeDataTransferStructure();
+
+  /// Initialize the Algebraic transport data structure
+  void InitializeAlgebraicTransport();
 };

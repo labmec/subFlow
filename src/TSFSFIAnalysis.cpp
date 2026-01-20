@@ -30,3 +30,18 @@ void TSFSFIAnalysis::SetProblemData(TSFProblemData *simData) {
   fDarcyAnalysis.SetProblemData(simData);
   fTransportAnalysis.SetProblemData(simData);
 }
+
+void TSFSFIAnalysis::Initialize() {
+  fDarcyAnalysis.Initialize();
+  fTransportAnalysis.Initialize();
+  InitializeDataTransferStructure();
+  InitializeAlgebraicTransport();
+}
+
+void TSFSFIAnalysis::InitializeDataTransferStructure() {
+  fDataTransfer.Initialize();
+}
+
+void TSFSFIAnalysis::InitializeAlgebraicTransport() {
+  fDataTransfer.InitializeAlgebraicTransport(fTransportAnalysis.fAlgebraicTransport);
+}
