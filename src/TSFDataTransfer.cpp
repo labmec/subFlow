@@ -23,17 +23,17 @@
 #include "pzshapetriang.h"
 #include "pzsubcmesh.h"
 /// Default constructor
-TSFDataTransfer::TSFDataTransfer() : fFluxMesh(0), fTransportMesh(0) {
+TSFDataTransfer::TSFDataTransfer() : fDarcyCmesh(0), fTransportCmesh(0) {
 }
 
 /// Copy constructor
-TSFDataTransfer::TSFDataTransfer(const TSFDataTransfer &other) : fFluxMesh(other.fFluxMesh), fTransportMesh(other.fTransportMesh), fInterfaceGelIndexes(other.fInterfaceGelIndexes), fVolumeElements(other.fVolumeElements), fConnectsByInterfaceMatID(other.fVolumeElements) {
+TSFDataTransfer::TSFDataTransfer(const TSFDataTransfer &other) : fDarcyCmesh(other.fDarcyCmesh), fTransportCmesh(other.fTransportCmesh), fInterfaceGelIndexes(other.fInterfaceGelIndexes), fVolumeElements(other.fVolumeElements), fConnectsByInterfaceMatID(other.fVolumeElements) {
 }
 
 /// Assignement constructor
 const TSFDataTransfer &TSFDataTransfer::operator=(const TSFDataTransfer &other) {
-  fFluxMesh = other.fFluxMesh;
-  fTransportMesh = other.fTransportMesh;
+  fDarcyCmesh = other.fDarcyCmesh;
+  fTransportCmesh = other.fTransportCmesh;
   fInterfaceGelIndexes = other.fInterfaceGelIndexes;
   fVolumeElements = other.fVolumeElements;
   fConnectsByInterfaceMatID = other.fConnectsByInterfaceMatID;
@@ -44,17 +44,13 @@ const TSFDataTransfer &TSFDataTransfer::operator=(const TSFDataTransfer &other) 
 TSFDataTransfer::~TSFDataTransfer() {
 }
 
-// compute the data transfer data structures between the fluxmesh and transport class
-void TSFDataTransfer::BuildTransportDataStructure(TPZAlgebraicTransport &transport) {
+// compute the data transfer data structures between the darcymesh and transport class
+void TSFDataTransfer::Initialize() {
   IdentifyInterfaceGeometricElements();
   IdentifyVolumeGeometricElements2();
-  BuildMixedToTransportDataStructures(fFluxMesh);
+  BuildDarcyToTransportDataStructures(fDarcyCmesh);
   TPZVec<int64_t> Volume_Index;
-  BuildTransportToMixedCorrespondenceDatastructure(fFluxMesh, Volume_Index);
-  InitializeTransportDataStructure(transport);
-  InitializeVectorPointersMixedToTransport(transport);
-  InitializeVectorPointersTranportToMixed(transport);
-  CheckDataTransferTransportToMixed();
+  BuildTransferCorrespondenceDatastructure(fDarcyCmesh, Volume_Index);
 }
 
 // Identify the geometric elements corresponding to interface elements. Order them as
@@ -62,20 +58,20 @@ void TSFDataTransfer::BuildTransportDataStructure(TPZAlgebraicTransport &transpo
 void TSFDataTransfer::IdentifyInterfaceGeometricElements() {
   // look for the geometric elements corresponding to interface elements
   // order them as a function of the number of corner nodes
-  TPZGeoMesh *gmesh = fTransportMesh->Reference();
+  TPZGeoMesh *gmesh = fTransportCmesh->Reference();
   std::pair<int, int64_t> defpair(100, -1);
-  fTransportMesh->LoadReferences();
-  int64_t neltr = fTransportMesh->NElements();
+  fTransportCmesh->LoadReferences();
+  int64_t neltr = fTransportCmesh->NElements();
   TPZVec<std::pair<int, int64_t>> interfaces(neltr, defpair);
   int64_t num_interfaces = 0;
   for (int64_t el = 0; el < neltr; el++) {
-    TPZCompEl *cel = fTransportMesh->Element(el);
+    TPZCompEl *cel = fTransportCmesh->Element(el);
     TPZMultiphysicsInterfaceElement *interf = dynamic_cast<TPZMultiphysicsInterfaceElement *>(cel);
     TPZInterfaceElement *interf2 = dynamic_cast<TPZInterfaceElement *>(cel);
     if (!interf && !interf2)
       continue;
 
-    TPZGeoEl *gel = NULL;
+    TPZGeoEl *gel = nullptr;
     if (interf)
       gel = interf->Reference();
     else
@@ -99,7 +95,7 @@ void TSFDataTransfer::IdentifyInterfaceGeometricElements() {
     if (interfaces[el].first > 4)
       DebugStop(); // an interface element should not have more than 4 corner nodes
     int64_t celindex = interfaces[el].second;
-    TPZCompEl *cel = fTransportMesh->Element(celindex);
+    TPZCompEl *cel = fTransportCmesh->Element(celindex);
     int64_t gelindex = cel->Reference()->Index();
     int matid = gmesh->Element(gelindex)->MaterialId();
     total_internal_interfaces_matid[matid]++;
@@ -126,14 +122,14 @@ void TSFDataTransfer::IdentifyInterfaceGeometricElements() {
   for (int64_t el = 0; el < num_interfaces; el++) {
     if (interfaces[el].first > 4) DebugStop();
     int64_t celindex = interfaces[el].second;
-    TPZCompEl *cel = fTransportMesh->Element(celindex);
+    TPZCompEl *cel = fTransportCmesh->Element(celindex);
     TPZGeoEl *gel = cel->Reference();
     int64_t gelindex = gel->Index();
     int matid = gmesh->Element(gelindex)->MaterialId();
     int ncornernodes = gel->NCornerNodes();
     TInterfaceWithVolume &intface = fInterfaceGelIndexes[matid][count_interfaces[matid][ncornernodes]];
-    intface.fInterface_gelindex = gelindex;
-    intface.fInterface_celindex = celindex;
+    intface.fGelIndex = gelindex;
+    intface.fCelIndex = celindex;
     count_interfaces[matid][ncornernodes]++;
   }
 
@@ -143,7 +139,7 @@ void TSFDataTransfer::IdentifyInterfaceGeometricElements() {
       TPZVec<TInterfaceWithVolume> &vec = it.second;
       int64_t nel = vec.size();
       for (int64_t el = 0; el < nel; el++) {
-        if (vec[el].fInterface_gelindex == -1)
+        if (vec[el].fGelIndex == -1)
           DebugStop();
       }
     }
@@ -166,7 +162,7 @@ int SideOriginalIndex(TPZGeoEl *gel, int side) {
 
 // Identify volume information to the interface data structure (TInterfaceWithVolume)
 void TSFDataTransfer::IdentifyVolumeGeometricElements2() {
-  TPZGeoMesh *gmesh = fTransportMesh->Reference();
+  TPZGeoMesh *gmesh = fTransportCmesh->Reference();
 
   int64_t nel = gmesh->NElements();
   fInterfaceByGeom.Redim(nel, 6);
@@ -178,10 +174,11 @@ void TSFDataTransfer::IdentifyVolumeGeometricElements2() {
   int globcount = 0;
   TPZVec<int64_t> geometricvolume(nel, 0);
   int64_t volumecount = 0;
-  TPZVec<int64_t> VolumeElementIndex(fTransportMesh->NElements(), -1);
-  fFluxMesh->LoadReferences();
-  fConnectsByInterfaceMatID.resize(fFluxMesh->NConnects());
-  for (int ipos = 0; ipos < fFluxMesh->NConnects(); ipos++) {
+  TPZVec<int64_t> VolumeElementIndex(fTransportCmesh->NElements(), -1);
+  fDarcyCmesh->LoadReferences();
+  int64_t nconnects = fDarcyCmesh->NConnects();
+  fConnectsByInterfaceMatID.resize(nconnects);
+  for (int ipos = 0; ipos < nconnects; ipos++) {
     fConnectsByInterfaceMatID[ipos] = -10000;
   }
 
@@ -189,9 +186,9 @@ void TSFDataTransfer::IdentifyVolumeGeometricElements2() {
     TPZVec<TInterfaceWithVolume> &facevec = it->second;
     int64_t nfaces = facevec.size();
     for (int64_t iface = 0; iface < nfaces; iface++) {
-      int64_t celindex = facevec[iface].fInterface_celindex;
-      TPZCompEl *cel = fTransportMesh->Element(celindex);
-      int meshdim = fTransportMesh->Dimension();
+      int64_t celindex = facevec[iface].fCelIndex;
+      TPZCompEl *cel = fTransportCmesh->Element(celindex);
+      int meshdim = fTransportCmesh->Dimension();
       TPZInterfaceElement *intface = dynamic_cast<TPZInterfaceElement *>(cel);
       if (!intface) {
         DebugStop();
@@ -259,14 +256,14 @@ void TSFDataTransfer::IdentifyVolumeGeometricElements2() {
   }
   fVolumeElements.Resize(volumecount);
 
-  int64_t nelcomp = fTransportMesh->NElements();
+  int64_t nelcomp = fTransportCmesh->NElements();
   for (int64_t el = 0; el < nelcomp; el++) {
     if (VolumeElementIndex[el] == -1) continue;
     int64_t cellindex = VolumeElementIndex[el];
     fVolumeElements[cellindex] = el;
   }
 
-  int ncon = fFluxMesh->NConnects();
+  int ncon = fDarcyCmesh->NConnects();
   int count = 0;
   for (int icon = 0; icon < ncon; icon++) {
     if (fConnectsByInterfaceMatID[icon] != -10000) {
@@ -660,64 +657,41 @@ TPZGeoElSide TSFDataTransfer::IdentifyInterfaceElement(const TPZGeoElSide &gelsi
   return gelside;
 }
 
-static void ExtractElement(TPZCompEl *cel, std::list<TPZCompEl *> &ellist) {
+static void ExtractElement(TPZCompEl *cel, TPZStack<TPZCompEl *> &cels) {
   TPZFastCondensedElement *condF = dynamic_cast<TPZFastCondensedElement *>(cel);
   TPZCondensedCompEl *cond = dynamic_cast<TPZCondensedCompEl *>(cel);
   TPZElementGroup *elgr = dynamic_cast<TPZElementGroup *>(cel);
   if (cond || condF) {
-    ellist.push_back(cel);
+    cels.push_back(cel);
   }
   if (elgr) {
     std::cout << "Error" << std::endl;
+    DebugStop();
   }
-  //    else if(gel)
-  //    {
-  //            ellist.push_back(cel);
-  //
-  //    }
-  //
-  //    else if(elgr)
-  //    {
-  //        const TPZVec<TPZCompEl *> &elvec = elgr->GetElGroup();
-  //        int64_t nel = elvec.size();
-  //        for(int64_t el=0; el<nel; el++)
-  //        {
-  //            ExtractElement(elvec[el],ellist);
-  //        }
-  //    }
-  //    else
-  //    {
-  //        DebugStop();
-  //    }
 }
+
 /// extract the list of computational element from a substructured computational mesh
 // this method also searches for elements in element groups and condensed elements
 // each computational element has an associated geometric element
-void TSFDataTransfer::GetElementAndSubmeshPointers(TPZCompMesh &mixedmesh, std::list<TPZCompEl *> &elpointers, std::list<TPZSubCompMesh *> &submeshes) {
-  int64_t nel = mixedmesh.NElements();
+void TSFDataTransfer::GetCondensedElements(TPZCompMesh *cmesh, TPZStack<TPZCompEl *> &cels) {
+  int64_t nel = cmesh->NElements();
   for (int64_t el = 0; el < nel; el++) {
-    TPZCompEl *cel = mixedmesh.Element(el);
+    TPZCompEl *cel = cmesh->Element(el);
     if (!cel) continue;
 
-    TPZSubCompMesh *submesh = dynamic_cast<TPZSubCompMesh *>(cel);
-    if (submesh) {
-      submeshes.push_back(submesh);
-    } else {
-      ExtractElement(cel, elpointers);
-    }
+    ExtractElement(cel, cels);
   }
 }
 
-/// build the data structure from mixed to transport
-void TSFDataTransfer::BuildMixedToTransportDataStructures(TPZCompMesh *fluxmesh) {
-  if (!fluxmesh) DebugStop();
+/// build the data structure from darcy to transport
+void TSFDataTransfer::BuildDarcyToTransportDataStructures(TPZCompMesh *darcy_cmesh) {
+  if (!darcy_cmesh) DebugStop();
 
-  std::list<TPZCompEl *> cellist;
-  std::list<TPZSubCompMesh *> submeshes;
-  GetElementAndSubmeshPointers(*fluxmesh, cellist, submeshes);
-  TPZVec<int64_t> shouldtransfer(fluxmesh->NConnects(), 0);
-  TPZVec<int64_t> targetindex(fluxmesh->NConnects(), 0);
-  fluxmesh->LoadReferences();
+  TPZStack<TPZCompEl *> cellist;
+  GetCondensedElements(darcy_cmesh, cellist);
+  TPZVec<int64_t> shouldtransfer(darcy_cmesh->NConnects(), 0);
+  TPZVec<int64_t> targetindex(darcy_cmesh->NConnects(), 0);
+  darcy_cmesh->LoadReferences();
   if (cellist.size()) {
     // compute the number of connects that will transfer information
     std::map<int, TPZManVector<int64_t, 4>> ncontransfer;
@@ -728,9 +702,9 @@ void TSFDataTransfer::BuildMixedToTransportDataStructures(TPZCompMesh *fluxmesh)
       TPZCompEl *cel = *it;
       TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
       TPZCondensedCompEl *cnd = dynamic_cast<TPZCondensedCompEl *>(cel);
-      TPZCompEl *candidate = NULL;
-      TPZElementGroup *group = NULL;
-      TPZMultiphysicsElement *mphys = NULL;
+      TPZCompEl *candidate = nullptr;
+      TPZElementGroup *group = nullptr;
+      TPZMultiphysicsElement *mphys = nullptr;
       if (condensed) {
         candidate = condensed->ReferenceCompEl();
         group = dynamic_cast<TPZElementGroup *>(candidate);
@@ -800,7 +774,7 @@ void TSFDataTransfer::BuildMixedToTransportDataStructures(TPZCompMesh *fluxmesh)
 
           if (shouldtransfer[cindex] != 0) continue;
 
-          TPZSubCompMesh *scmesh = dynamic_cast<TPZSubCompMesh *>(fluxmesh);
+          TPZSubCompMesh *scmesh = dynamic_cast<TPZSubCompMesh *>(fDarcyCmesh);
           int matid = -10000;
           if (scmesh) {
             std::map<int64_t, int64_t>::iterator it = scmesh->LocalToFather().find(cindex);
@@ -843,18 +817,18 @@ void TSFDataTransfer::BuildMixedToTransportDataStructures(TPZCompMesh *fluxmesh)
       int nc = connectindexes[matid].size();
       for (int is = 0; is < 4; is++) {
         if (ncontransfer[matid][is] == 0) continue;
-        TFromMixedToTransport transport;
+        TFromDarcyToTransport transport;
         transport.fMatid = matid;
         transport.fGather.resize(ncontransfer[matid][is]);
         transport.fScatter.resize(ncontransfer[matid][is]);
-        transport.fMixedMesh = fluxmesh;
+        transport.fDarcyCmesh = fDarcyCmesh;
         transport.flux_sequence = is;
         int64_t count = 0;
         for (int64_t ic = 0; ic < nc; ic++) {
           int64_t cindex = connectindexes[matid][ic];
-          int64_t seqnum = fluxmesh->ConnectVec()[cindex].SequenceNumber();
-          int64_t position = fluxmesh->Block().Position(seqnum);
-          int64_t blsize = fluxmesh->Block().Size(seqnum);
+          int64_t seqnum = fDarcyCmesh->ConnectVec()[cindex].SequenceNumber();
+          int64_t position = fDarcyCmesh->Block().Position(seqnum);
+          int64_t blsize = fDarcyCmesh->Block().Size(seqnum);
           if (is >= blsize) continue;
           if (count >= ncontransfer[matid][is]) DebugStop();
           int gather = position + is;
@@ -864,21 +838,16 @@ void TSFDataTransfer::BuildMixedToTransportDataStructures(TPZCompMesh *fluxmesh)
           count++;
         }
         if (count != ncontransfer[matid][is]) DebugStop();
-        fTransferMixedToTransport[matid].push_back(transport);
+        fTransferDarcyToTransport[matid].push_back(transport);
       }
-    }
-  }
-  if (submeshes.size()) {
-    for (auto it = submeshes.begin(); it != submeshes.end(); it++) {
-      BuildMixedToTransportDataStructures(*it);
     }
   }
 }
 
 // Initialize the pointers to the transport data structure in the
-// list fTransferMixedToTransport
-void TSFDataTransfer::InitializeVectorPointersMixedToTransport(TPZAlgebraicTransport &transport) {
-  for (auto &mat_iter : fTransferMixedToTransport) {
+// list fTransferDarcyToTransport
+void TSFDataTransfer::InitializeVectorPointersDarcyToTransport(TSFAlgebraicTransport &transport) {
+  for (auto &mat_iter : fTransferDarcyToTransport) {
     int matid = mat_iter.first;
     if (transport.fInterfaceData.find(matid) == transport.fInterfaceData.end()) DebugStop();
     for (auto &list_iter : mat_iter.second) {
@@ -886,22 +855,22 @@ void TSFDataTransfer::InitializeVectorPointersMixedToTransport(TPZAlgebraicTrans
       if (transport.fInterfaceData[matid].fCoefficientsFlux.size() <= flux_index) DebugStop();
       auto vecptr = &transport.fInterfaceData[matid].fCoefficientsFlux[flux_index];
       list_iter.fTarget = vecptr;
-      TPZFMatrix<STATE> &matptr = (list_iter.fMixedMesh->Solution());
+      TPZFMatrix<STATE> &matptr = (list_iter.fDarcyCmesh->Solution());
       list_iter.fFrom = &matptr;
     }
   }
 }
 
-// Initialize the pointers from the transport data structure in the list TransportToMixedCorrespondence
-void TSFDataTransfer::InitializeVectorPointersTranportToMixed(TPZAlgebraicTransport &transport) {
-  for (auto &mesh_iter : fTransportMixedCorrespondence) {
+// Initialize the pointers from the transport data structure in the list TransportToDarcyCorrespondence
+void TSFDataTransfer::InitializeVectorPointersTransportToDarcy(TSFAlgebraicTransport &transport) {
+  for (auto &mesh_iter : fCorrespondence) {
     mesh_iter.fTransport = &transport;
   }
 }
 
 // print the datastructure
 void TSFDataTransfer::Print(std::ostream &out) {
-  TPZGeoMesh *gmesh = fTransportMesh->Reference();
+  TPZGeoMesh *gmesh = fTransportCmesh->Reference();
   out << "Number of interface materials " << fInterfaceGelIndexes.size() << std::endl;
   for (auto it = fInterfaceGelIndexes.begin(); it != fInterfaceGelIndexes.end(); it++) {
     out << "Element indexes for material id " << it->first << std::endl;
@@ -909,15 +878,15 @@ void TSFDataTransfer::Print(std::ostream &out) {
     int64_t nel = gelindex.NElements();
     for (int64_t el = 0; el < nel; el++) {
       TInterfaceWithVolume &intface = gelindex[el];
-      int64_t gindex = intface.fInterface_gelindex;
+      int64_t gindex = intface.fGelIndex;
 #ifdef PZDEBUG
       if (gindex < 0) DebugStop();
 #endif
       TPZGeoEl *gel = gmesh->Element(gindex);
       int matid = gel->MaterialId();
       int ncorner = gel->NCornerNodes();
-      out << "el = " << el << " gel index " << intface.fInterface_gelindex << " ncorner " << ncorner << " matid " << matid << std::endl;
-      out << "         cel index " << intface.fInterface_celindex << " leftright gelindex " << intface.fLeftRightGelSideIndex.first << " " << intface.fLeftRightGelSideIndex.second << std::endl;
+      out << "el = " << el << " gel index " << intface.fGelIndex << " ncorner " << ncorner << " matid " << matid << std::endl;
+      out << "         cel index " << intface.fCelIndex << " leftright gelindex " << intface.fLeftRightGelSideIndex.first << " " << intface.fLeftRightGelSideIndex.second << std::endl;
       out << "         leftright alg vol index " << intface.fLeftRightVolIndex << std::endl;
     }
   }
@@ -928,7 +897,7 @@ void TSFDataTransfer::Print(std::ostream &out) {
   int64_t nel = volel_indexes.size();
   for (int64_t el = 0; el < nel; el++) {
     int64_t celindex = volel_indexes[el];
-    TPZCompEl *cel = fTransportMesh->Element(celindex);
+    TPZCompEl *cel = fTransportCmesh->Element(celindex);
     TPZGeoEl *gel = cel->Reference();
     int64_t gelindex = gel->Index();
     out << "el = " << el << " gel index " << gelindex << " matid " << gel->MaterialId() << " dim " << gel->Dimension() << std::endl;
@@ -958,14 +927,14 @@ void TSFDataTransfer::Print(std::ostream &out) {
       }
     }
   }
-  if (fTransferMixedToTransport.size()) {
+  if (fTransferDarcyToTransport.size()) {
     out << "Gather scatter to bring the flux data to the transport mesh\n";
-    for (auto it : fTransferMixedToTransport) {
+    for (auto it : fTransferDarcyToTransport) {
       int matid = it.first;
       out << "Flux data transfer for material id : " << matid << std::endl;
-      std::list<TFromMixedToTransport> &list = it.second;
+      std::list<TFromDarcyToTransport> &list = it.second;
       for (auto itlist : list) {
-        TFromMixedToTransport &transport = itlist;
+        TFromDarcyToTransport &transport = itlist;
       }
     }
   }
@@ -973,11 +942,11 @@ void TSFDataTransfer::Print(std::ostream &out) {
 
 // Build the data structure which defines the correspondence between
 // algebraic transport cells and indexes of mixed fast condensed elements
-void TSFDataTransfer::BuildTransportToMixedCorrespondenceDatastructure(TPZCompMesh *fluxmesh, TPZVec<int64_t> &Alg_Cell_Index) {
+void TSFDataTransfer::BuildTransferCorrespondenceDatastructure(TPZCompMesh *darcy_cmesh, TPZVec<int64_t> &Alg_Cell_Index) {
   // build a vector of the size of the geometric elements
   // where applicable the value of the vector is the index of the
   // algebraic transport volume
-  TPZGeoMesh *gmesh = fTransportMesh->Reference();
+  TPZGeoMesh *gmesh = fTransportCmesh->Reference();
   int64_t nel_geo = gmesh->NElements();
   //    TPZVec<int64_t> Volume_Index(nel_geo,-10);
   if (Alg_Cell_Index.size() != nel_geo) {
@@ -985,7 +954,7 @@ void TSFDataTransfer::BuildTransportToMixedCorrespondenceDatastructure(TPZCompMe
     Alg_Cell_Index.Fill(-10);
     for (int64_t vec_it = 0; vec_it < fVolumeElements.size(); vec_it++) {
       int64_t celindex = fVolumeElements[vec_it];
-      TPZCompEl *cel = fTransportMesh->Element(celindex);
+      TPZCompEl *cel = fTransportCmesh->Element(celindex);
       if (cel->NConnects() != 0) {
         TPZGeoEl *gel = cel->Reference();
         int64_t geo_index = gel->Index();
@@ -993,10 +962,9 @@ void TSFDataTransfer::BuildTransportToMixedCorrespondenceDatastructure(TPZCompMe
       }
     }
   }
-  if (!fluxmesh) DebugStop();
-  std::list<TPZCompEl *> cellist;
-  std::list<TPZSubCompMesh *> submeshes;
-  GetElementAndSubmeshPointers(*fluxmesh, cellist, submeshes);
+  if (!darcy_cmesh) DebugStop();
+  TPZStack<TPZCompEl *> cellist;
+  GetCondensedElements(darcy_cmesh, cellist);
   if (cellist.size()) {
     int64_t num_elements = 0;
     // first count the number of volume cells in the mesh
@@ -1017,16 +985,16 @@ void TSFDataTransfer::BuildTransportToMixedCorrespondenceDatastructure(TPZCompMe
       int64_t celindex2 = cel->Index();
       int64_t gelindex = celaux->Reference()->Index();
       if (Alg_Cell_Index[gelindex] < 0) continue;
-      TPZCompEl *celcondensed = fluxmesh->Element(celindex2);
+      TPZCompEl *celcondensed = darcy_cmesh->Element(celindex2);
       TPZFastCondensedElement *fast = dynamic_cast<TPZFastCondensedElement *>(celcondensed);
       TPZCondensedCompEl *cnd = dynamic_cast<TPZCondensedCompEl *>(celcondensed);
       if (!fast && !cnd) DebugStop();
       num_elements++;
     }
     if (num_elements > 0) {
-      TransportToMixedCorrespondence transport;
-      transport.fMixedMesh = fluxmesh;
-      transport.fMixedCell.resize(num_elements);
+      TTransferCorrespondence transport;
+      transport.fDarcyCmesh = darcy_cmesh;
+      transport.fDarcyCels.resize(num_elements);
       transport.fAlgebraicTransportCellIndex.resize(num_elements);
       transport.fEqNum.resize(num_elements);
 
@@ -1047,14 +1015,14 @@ void TSFDataTransfer::BuildTransportToMixedCorrespondenceDatastructure(TPZCompMe
         int64_t celindex = cel->Index();
         int64_t gelindex = celaux->Reference()->Index();
         if (Alg_Cell_Index[gelindex] < 0) continue;
-        TPZCompEl *celcondensed = fluxmesh->Element(celindex);
+        TPZCompEl *celcondensed = darcy_cmesh->Element(celindex);
         TPZFastCondensedElement *fast = dynamic_cast<TPZFastCondensedElement *>(celcondensed);
         TPZCondensedCompEl *condensed = dynamic_cast<TPZCondensedCompEl *>(celcondensed);
         if (!fast && !condensed) continue;
         if (fast) {
-          transport.fMixedCell[count] = fast;
+          transport.fDarcyCels[count] = fast;
         } else {
-          transport.fMixedCell[count] = condensed;
+          transport.fDarcyCels[count] = condensed;
         }
 
         int64_t AlgCelIndex = Alg_Cell_Index[gelindex];
@@ -1066,7 +1034,7 @@ void TSFDataTransfer::BuildTransportToMixedCorrespondenceDatastructure(TPZCompMe
         fastgel->CenterPoint(side, xifast);
         fastgel->X(xifast, coordFast);
 
-        TPZCompEl *transComp = fTransportMesh->Element(TransportCelIndex);
+        TPZCompEl *transComp = fTransportCmesh->Element(TransportCelIndex);
         TPZGeoEl *transportGel = transComp->Reference();
         TPZVec<REAL> coordTransp(3), xiTransp(dim, 0);
         transportGel->CenterPoint(side, xiTransp);
@@ -1083,26 +1051,21 @@ void TSFDataTransfer::BuildTransportToMixedCorrespondenceDatastructure(TPZCompMe
         count++;
       }
       if (count != num_elements) DebugStop();
-      fTransportMixedCorrespondence.push_back(transport);
-    }
-  }
-  if (submeshes.size() != 0) {
-    for (auto sub : submeshes) {
-      BuildTransportToMixedCorrespondenceDatastructure(sub, Alg_Cell_Index);
+      fCorrespondence.push_back(transport);
     }
   }
 }
 
-void TSFDataTransfer::InitializeTransportDataStructure(TPZAlgebraicTransport &transport) {
+void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transport) {
 
-  TPZGeoMesh *gmesh = fTransportMesh->Reference();
+  TPZGeoMesh *gmesh = fTransportCmesh->Reference();
   for (auto mat_iter : fInterfaceGelIndexes) {
     TPZManVector<int, 6> numfaces(4, 0);
-    TPZAlgebraicTransport::TInterfaceDataTransport &InterfaceVec = transport.fInterfaceData[mat_iter.first];
+    TSFAlgebraicTransport::TInterfaceData &InterfaceVec = transport.fInterfaceData[mat_iter.first];
     int ncormax = 0;
     for (auto face_it : mat_iter.second) {
 
-      TPZGeoEl *gel = gmesh->Element(face_it.fInterface_gelindex);
+      TPZGeoEl *gel = gmesh->Element(face_it.fGelIndex);
       TPZCompEl *cel = gel->Reference();
       TPZMultiphysicsInterfaceElement *intel = dynamic_cast<TPZMultiphysicsInterfaceElement *>(cel);
       TPZInterfaceElement *intel2 = dynamic_cast<TPZInterfaceElement *>(cel);
@@ -1122,7 +1085,7 @@ void TSFDataTransfer::InitializeTransportDataStructure(TPZAlgebraicTransport &tr
       int ncorner = gel->NCornerNodes();
       std::pair<int, int> lr = face_it.fLeftRightVolIndex;
       InterfaceVec.fLeftRightVolIndex.push_back(lr);
-      InterfaceVec.fcelindex.push_back(face_it.fInterface_celindex);
+      InterfaceVec.fcelindex.push_back(face_it.fCelIndex);
 
       std::pair<int, int> lrgel = face_it.fLeftRightGelIndex;
       InterfaceVec.fLeftRightGelIndex.push_back(lrgel);
@@ -1156,14 +1119,14 @@ void TSFDataTransfer::InitializeTransportDataStructure(TPZAlgebraicTransport &tr
   for (int64_t i = 0; i < nvols; i++) {
     int64_t celindex = volData[i];
 
-    TPZCompEl *cel = fTransportMesh->Element(celindex);
+    TPZCompEl *cel = fTransportCmesh->Element(celindex);
     TPZGeoEl *gel = cel->Reference();
     int indexgeo = gel->Index();
     int geldim = gel->Dimension();
     int matId = gel->MaterialId();
 
     REAL volume = gel->Volume();
-    if (transport.fCellsData.fsim_data->mTNumerics.m_is_axisymmetric) {
+    if (transport.fCellsData.fSimData->fTNumerics.fIsAxisymmetric) {
       int ncorner = gel->NCornerNodes();
       REAL rmin = std::numeric_limits<REAL>::max();
       REAL rmax = std::numeric_limits<REAL>::min();
@@ -1187,7 +1150,7 @@ void TSFDataTransfer::InitializeTransportDataStructure(TPZAlgebraicTransport &tr
     }
     TPZConnect &con = cel->Connect(0);
     int block_num = con.SequenceNumber();
-    int eq_number = fTransportMesh->Block().Position(block_num);
+    int eq_number = fTransportCmesh->Block().Position(block_num);
 
     transport.fCellsData.fEqNumber[i] = eq_number;
     transport.fCellsData.fDensityOil[i] = 1000.00;
@@ -1202,7 +1165,7 @@ void TSFDataTransfer::InitializeTransportDataStructure(TPZAlgebraicTransport &tr
     gel->X(ximasscent, coord);
 
     REAL s0_v = 0.0;
-    auto s0_func = transport.fCellsData.fsim_data->mTReservoirProperties.s0;
+    auto s0_func = transport.fCellsData.fSimData->fTReservoirProperties.fS0;
     if (s0_func) {
       fs0 = s0_func;
       s0_v = fs0(coord);
@@ -1217,33 +1180,31 @@ void TSFDataTransfer::InitializeTransportDataStructure(TPZAlgebraicTransport &tr
     transport.fCellsData.fCenterCoordinate[i] = center;
     transport.fCellsData.fGeoIndex[i] = indexgeo;
   }
-  //    transport.fCellsData.fMatId = 1;
 
-  // transport.fCellsData.UpdateFractionalFlowsAndLambda(true);
-  this->InitializeVectorPointersTranportToMixed(transport);
+  InitializeVectorPointersTransportToDarcy(transport);
+  InitializeVectorPointersDarcyToTransport(transport);
+  CheckDataTransferTransportToDarcy();
 }
 
-TSFDataTransfer::TFromMixedToTransport::TFromMixedToTransport() : fMatid(-1),
-                                                                  flux_sequence(-1), fFrom(0), fTarget(0), fMixedMesh(0) {
-}
+TSFDataTransfer::TFromDarcyToTransport::TFromDarcyToTransport() : fMatid(-1), flux_sequence(-1), fFrom(0), fTarget(0), fDarcyCmesh(nullptr) {}
 
-TSFDataTransfer::TFromMixedToTransport::TFromMixedToTransport(const TFromMixedToTransport &copy) : fMatid(copy.fMatid), flux_sequence(copy.flux_sequence),
+TSFDataTransfer::TFromDarcyToTransport::TFromDarcyToTransport(const TFromDarcyToTransport &copy) : fMatid(copy.fMatid), flux_sequence(copy.flux_sequence),
                                                                                                    fGather(copy.fGather), fScatter(copy.fScatter), fFrom(copy.fFrom),
-                                                                                                   fTarget(copy.fTarget), fMixedMesh(copy.fMixedMesh) {
-  fMixedMesh = copy.fMixedMesh;
+                                                                                                   fTarget(copy.fTarget), fDarcyCmesh(copy.fDarcyCmesh) {
+  fDarcyCmesh = copy.fDarcyCmesh;
 }
 
-TSFDataTransfer::TFromMixedToTransport &TSFDataTransfer::TFromMixedToTransport::operator=(const TFromMixedToTransport &copy) {
+TSFDataTransfer::TFromDarcyToTransport &TSFDataTransfer::TFromDarcyToTransport::operator=(const TFromDarcyToTransport &copy) {
   fMatid = copy.fMatid;
   flux_sequence = copy.flux_sequence;
   fFrom = copy.fFrom;
   fTarget = copy.fTarget;
-  fMixedMesh = copy.fMixedMesh;
+  fDarcyCmesh = copy.fDarcyCmesh;
   return *this;
 }
 
-void TSFDataTransfer::TFromMixedToTransport::Print(std::ostream &out) {
-  out << "FromMixedToTransport mesh = " << (void *)fMixedMesh << " flux index " << flux_sequence << " matid " << fMatid << std::endl;
+void TSFDataTransfer::TFromDarcyToTransport::Print(std::ostream &out) {
+  out << "FromDarcyToTransport mesh = " << (void *)fDarcyCmesh << " flux index " << flux_sequence << " matid " << fMatid << std::endl;
   out << "Gather vector ";
   for (auto const &value : fGather)
     out << value << ' ';
@@ -1254,32 +1215,32 @@ void TSFDataTransfer::TFromMixedToTransport::Print(std::ostream &out) {
   out << std::endl;
 }
 
-void TSFDataTransfer::TransportToMixedCorrespondence::Print(std::ostream &out) {
-  out << "TransportToMixedCorrespondence mesh = " << (void *)fMixedMesh << std::endl;
+void TSFDataTransfer::TTransferCorrespondence::Print(std::ostream &out) {
+  out << "TransportToDarcyCorrespondence mesh = " << (void *)fDarcyCmesh << std::endl;
   out << "fTransportCell vector ";
   for (auto value : fAlgebraicTransportCellIndex)
     out << value << ' ';
   out << std::endl;
   out << "fMixedCell compel indices ";
-  for (auto value : fMixedCell)
+  for (auto value : fDarcyCels)
     out << value->Index() << ' ';
   out << std::endl;
 }
 
 // transfer the solution from the mixed mesh fluxes to the interfaces
-void TSFDataTransfer::TransferMixedMeshMultiplyingCoefficients() {
-  for (auto &matit : fTransferMixedToTransport) {
-    for (auto &mixed : matit.second) {
-      int64_t nel = mixed.fGather.size();
+void TSFDataTransfer::TransferDarcyMeshMultiplyingCoefficients() {
+  for (auto &matit : fTransferDarcyToTransport) {
+    for (auto &darcy : matit.second) {
+      int64_t nel = darcy.fGather.size();
       for (int64_t el = 0; el < nel; el++) {
 
-        (*mixed.fTarget)[mixed.fScatter[el]] = (*mixed.fFrom)(mixed.fGather[el], 0);
+        (*darcy.fTarget)[darcy.fScatter[el]] = (*darcy.fFrom)(darcy.fGather[el], 0);
       }
     }
   }
 }
 void TSFDataTransfer::TransferPressures() {
-  for (auto &meshit : fTransportMixedCorrespondence) {
+  for (auto &meshit : fCorrespondence) {
     int64_t ncells = meshit.fAlgebraicTransportCellIndex.size();
 #ifdef PZDEBUG
     if (meshit.fTransport == 0) {
@@ -1287,7 +1248,7 @@ void TSFDataTransfer::TransferPressures() {
     }
 #endif
     for (int icell = 0; icell < ncells; icell++) {
-      TPZCompEl *cel = meshit.fMixedCell[icell];
+      TPZCompEl *cel = meshit.fDarcyCels[icell];
       TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
       if (!condensed) {
         TPZCondensedCompEl *condcompel = dynamic_cast<TPZCondensedCompEl *>(cel);
@@ -1312,7 +1273,7 @@ void TSFDataTransfer::TransferPressures() {
 // transfer the permeability multiplier from the transport mesh to the mixed mesh elements
 void TSFDataTransfer::TransferLambdaCoefficients() {
 
-  for (auto &meshit : fTransportMixedCorrespondence) {
+  for (auto &meshit : fCorrespondence) {
     int64_t ncells = meshit.fAlgebraicTransportCellIndex.size();
 #ifdef PZDEBUG
     if (meshit.fTransport == 0) {
@@ -1320,7 +1281,7 @@ void TSFDataTransfer::TransferLambdaCoefficients() {
     }
 #endif
     for (int icell = 0; icell < ncells; icell++) {
-      TPZCompEl *cel = meshit.fMixedCell[icell];
+      TPZCompEl *cel = meshit.fDarcyCels[icell];
       TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
       if (!condensed) {
         TPZCondensedCompEl *condcompel = dynamic_cast<TPZCondensedCompEl *>(cel);
@@ -1339,7 +1300,7 @@ void TSFDataTransfer::TransferLambdaCoefficients() {
       condensed->SetMixedDensity(mixedDensity);
 
       REAL porosity = meshit.fTransport->fCellsData.fporosity[cellindex];
-      REAL dt = meshit.fTransport->fdt;
+      REAL dt = meshit.fTransport->fCellsData.fSimData->fTNumerics.fDt;
       REAL sw = meshit.fTransport->fCellsData.fSaturation[cellindex];
       REAL so = 1 - sw;
       REAL drhoWdp = meshit.fTransport->fCellsData.fdDensityWaterdp[cellindex];
@@ -1364,7 +1325,7 @@ void TSFDataTransfer::TransferLambdaCoefficients() {
 
 void TSFDataTransfer::TransferSaturation() {
 
-  for (auto &meshit : fTransportMixedCorrespondence) {
+  for (auto &meshit : fCorrespondence) {
     int64_t ncells = meshit.fAlgebraicTransportCellIndex.size();
 #ifdef PZDEBUG
     if (meshit.fTransport == 0) {
@@ -1372,7 +1333,7 @@ void TSFDataTransfer::TransferSaturation() {
     }
 #endif
     for (int icell = 0; icell < ncells; icell++) {
-      TPZCompEl *cel = meshit.fMixedCell[icell];
+      TPZCompEl *cel = meshit.fDarcyCels[icell];
       TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
       if (!condensed) {
         TPZCondensedCompEl *condcompel = dynamic_cast<TPZCondensedCompEl *>(cel);
@@ -1391,9 +1352,9 @@ void TSFDataTransfer::TransferSaturation() {
 }
 
 void TSFDataTransfer::TransferPermeabiliyTensor() {
-  CheckDataTransferTransportToMixed();
-  for (auto &meshit : fTransportMixedCorrespondence) {
-    TPZAlgebraicTransport::TCellData &celldata = meshit.fTransport->fCellsData;
+  CheckDataTransferTransportToDarcy();
+  for (auto &meshit : fCorrespondence) {
+    TSFAlgebraicTransport::TCellData &celldata = meshit.fTransport->fCellsData;
     int64_t ncells = meshit.fAlgebraicTransportCellIndex.size();
     for (int icell = 0; icell < ncells; icell++) {
 #ifdef PZDEBUG
@@ -1401,7 +1362,7 @@ void TSFDataTransfer::TransferPermeabiliyTensor() {
         DebugStop();
       }
 #endif
-      TPZCompEl *cel = meshit.fMixedCell[icell];
+      TPZCompEl *cel = meshit.fDarcyCels[icell];
       TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
       if (!condensed) {
         TPZCondensedCompEl *condcompel = dynamic_cast<TPZCondensedCompEl *>(cel);
@@ -1432,9 +1393,9 @@ void TSFDataTransfer::TransferPermeabiliyTensor() {
 }
 
 // verify the correspondence of the mixed elements and the algebraic cells
-void TSFDataTransfer::CheckDataTransferTransportToMixed() {
-  for (auto &meshit : fTransportMixedCorrespondence) {
-    TPZAlgebraicTransport::TCellData &celldata = meshit.fTransport->fCellsData;
+void TSFDataTransfer::CheckDataTransferTransportToDarcy() {
+  for (auto &meshit : fCorrespondence) {
+    TSFAlgebraicTransport::TCellData &celldata = meshit.fTransport->fCellsData;
     int64_t ncells = meshit.fAlgebraicTransportCellIndex.size();
     for (int icell = 0; icell < ncells; icell++) {
 #ifdef PZDEBUG
@@ -1443,8 +1404,7 @@ void TSFDataTransfer::CheckDataTransferTransportToMixed() {
       }
 #endif
       int64_t transportcell = meshit.fAlgebraicTransportCellIndex[icell];
-      TPZCompEl *cel = meshit.fMixedCell[icell];
-
+      TPZCompEl *cel = meshit.fDarcyCels[icell];
 #ifdef PZDEBUG
       TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
       if (!condensed) {
@@ -1505,107 +1465,16 @@ TPZMultiphysicsElement *TSFDataTransfer::findMultiphysics(TPZElementGroup *group
   }
   return mult;
 }
-std::pair<int, int> TSFDataTransfer::FindMortar(TPZGeoElSide &gelside) {
 
-  int mortarId = 40;
-  std::set<int> idstargets;
-  idstargets.insert(mortarId);
-  idstargets.insert(-1);
-  idstargets.insert(-2);
-  idstargets.insert(-3);
-  idstargets.insert(-4);
-
-  std::pair<int, int> indextargetPair(-1, -1);
-  for (auto idtar : idstargets) {
-    std::pair<int, int> candidatetarPair = FindMortar(gelside, idtar);
-
-    int candidatetar = std::get<0>(candidatetarPair);
-    if (candidatetar != -1) {
-      indextargetPair = candidatetarPair;
-      break;
-    }
-  }
-  return indextargetPair;
-}
-std::pair<int, int> TSFDataTransfer::FindMortar(TPZGeoElSide &gelside, int targetId) {
-
-  int indexcon = -1;
-  int nshape = -1;
-  std::pair<int, int> pairret(-1, -1);
-  int nsides = gelside.Element()->NSides();
-  gelside.Element()->Type();
-  int nsidesgelside = gelside.Side();
-  auto elType = gelside.Element()->Type();
-  bool first = true;
-  if (nsidesgelside == 9 && elType == EQuadrilateral) {
-    first = false;
-  }
-  if (nsidesgelside == 7 && elType == ETriangle) {
-    first = false;
-  }
-  TPZGeoElSide gelsideAux;
-  if (nsidesgelside < 8 && elType == EQuadrilateral) {
-    std::pair<int, int> pairt(-1, -1);
-    return pairt;
-  }
-  if (nsidesgelside < 6 && elType == ETriangle) {
-    std::pair<int, int> pairt(-1, -1);
-    return pairt;
-  }
-  if (nsidesgelside >= nsides && gelside.Element()->Dimension() == 2) {
-    if (elType == EQuadrilateral) {
-      gelsideAux = TPZGeoElSide(gelside.Element(), 8);
-    }
-    if (elType == ETriangle) {
-      gelsideAux = TPZGeoElSide(gelside.Element(), 6);
-    }
-
-  } else {
-    gelsideAux = gelside;
-  }
-  TPZGeoElSide neig = gelsideAux.Neighbour();
-  int count = 0;
-  while (gelsideAux != neig) {
-    int elId = neig.Element()->MaterialId();
-    //
-    if (elId == targetId) {
-      TPZCompEl *comp = neig.Element()->Reference();
-      TPZMultiphysicsInterfaceElement *mult = dynamic_cast<TPZMultiphysicsInterfaceElement *>(comp);
-      if (comp && !mult) {
-        count++;
-        if (!first) {
-          neig = neig.Neighbour();
-          first = true;
-          continue;
-        }
-        int ncon = comp->NConnects();
-        if (ncon != 1) {
-          DebugStop();
-        }
-        indexcon = comp->ConnectIndex(0);
-        nshape = comp->Connect(0).NShape();
-        std::pair<int, int> pairp(indexcon, nshape);
-        pairret = pairp;
-        break;
-      }
-    }
-    neig = neig.Neighbour();
-  }
-
-  return pairret;
-  //    compelside
-}
-
-void TSFDataTransfer::TestSideOrient(TPZCompMesh *MultFlux) {
-  int nels = MultFlux->NElements();
+void TSFDataTransfer::TestSideOrient(TPZCompMesh *darcy_cmesh) {
+  int nels = darcy_cmesh->NElements();
   //    for(int iel =0; iel < nels; iel++){
-  //        TPZCompEl * cel = MultFlux->Element(iel);
-  std::list<TPZCompEl *> elpointers;
-  std::list<TPZSubCompMesh *> submeshes;
-  GetElementAndSubmeshPointers(*MultFlux, elpointers, submeshes);
-  MultFlux->LoadReferences();
+  //        TPZCompEl * cel = darcy_cmesh->Element(iel);
+  TPZStack<TPZCompEl *> ellist;
+  GetCondensedElements(darcy_cmesh, ellist);
+  darcy_cmesh->LoadReferences();
   int count = 0;
-  for (auto cel : elpointers) {
+  for (auto cel : ellist) {
 
     //        TPZCompEl *cel =neigel->Reference();
     //        TPZMultiphysicsElement *cmulint = dynamic_cast<TPZMultiphysicsElement *>(cel);
