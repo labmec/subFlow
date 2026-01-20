@@ -18,6 +18,7 @@
 #include "TSFDarcyAnalysis.h"
 #include "TSFMixedDarcy.h"
 #include "TSFProblemData.h"
+#include "TSFSFIAnalysis.h"
 #include "pzfstrmatrix.h"
 #include "pzintel.h"
 #include "pzlog.h"
@@ -53,6 +54,8 @@ int main(int argc, char *const argv[]) {
   {
     std::ofstream out("darcy-cmesh.vtk");
     TPZVTKGeoMesh::PrintCMeshVTK(darcy_cmesh, out);
+    std::ofstream out2("darcy-cmesh.txt");
+    darcy_cmesh->Print(out2);
   }
 
   if (simData.fTNumerics.fAnalysisType == 0) { // Darcy
@@ -68,6 +71,9 @@ int main(int argc, char *const argv[]) {
       std::ofstream out("transport-cmesh.vtk");
       TPZVTKGeoMesh::PrintCMeshVTK(transport_cmesh, out);
     }
+    TSFSFIAnalysis SFIAnalysis(darcy_cmesh, transport_cmesh);
+    SFIAnalysis.SetProblemData(&simData);
+    SFIAnalysis.Initialize();
 
     delete transport_cmesh;
   }
