@@ -19,9 +19,8 @@ void TSFApproxCreator::ConfigureDarcySpace() {
   TPZHDivApproxCreator::SetDefaultOrder(fSimData->fTNumerics.fFluxOrder);
   if (fSimData->fTNumerics.fFourApproxSpaces) {
     TPZHDivApproxCreator::IsRigidBodySpaces() = true;
-  } else {
-    TPZHDivApproxCreator::SetShouldCondense(false);
   }
+  TPZHDivApproxCreator::SetShouldCondense(false);
 }
 
 void TSFApproxCreator::AddDarcyMaterials() {
