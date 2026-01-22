@@ -20,7 +20,7 @@ void TSFApproxCreator::ConfigureDarcySpace() {
   if (fSimData->fTNumerics.fFourApproxSpaces) {
     TPZHDivApproxCreator::IsRigidBodySpaces() = true;
   }
-  TPZHDivApproxCreator::SetShouldCondense(false);
+  TPZHDivApproxCreator::SetShouldCondense(false); //the static condensation will be done inside this class, using TPZFastCondensedElements
 }
 
 void TSFApproxCreator::AddDarcyMaterials() {
@@ -65,7 +65,7 @@ TPZMultiphysicsCompMesh *TSFApproxCreator::CreateApproximationSpace() {
   TPZHDivApproxCreator::CreateAtomicMeshes(meshvec, lagmultilevel); // This method increments the lagmultilevel
   TPZMultiphysicsCompMesh *cmesh = nullptr;
   TPZHDivApproxCreator::CreateMultiPhysicsMesh(meshvec, lagmultilevel, cmesh);
-  CondenseElements(cmesh, lagmultilevel, true);
+  CondenseElements(cmesh, lagmultilevel-1, true);
 
   return cmesh;
 }
@@ -80,7 +80,9 @@ void TSFApproxCreator::CondenseElements(TPZCompMesh *cmesh, char LagrangeLevelNo
     if (LagrangeLevelNotCondensed >= 0) {
       for (int ic = 0; ic < nc; ic++) {
         TPZConnect &c = cel->Connect(ic);
-        if ((c.LagrangeMultiplier() >= LagrangeLevelNotCondensed && c.NElConnected() == 1)) {
+        auto laglevel = c.LagrangeMultiplier();
+        auto nelcon = c.NElConnected();
+        if ((laglevel >= LagrangeLevelNotCondensed && nelcon == 1)) {
           c.IncrementElConnected();
         }
       }
