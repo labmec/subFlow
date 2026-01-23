@@ -15,6 +15,7 @@ TSFTransportAnalysis::~TSFTransportAnalysis() {}
 
 void TSFTransportAnalysis::SetProblemData(TSFProblemData *simData) {
   fSimData = simData;
+  fAlgebraicTransport.fCellsData.SetProblemData(simData);
 }
 
 TSFProblemData *TSFTransportAnalysis::GetProblemData() {
