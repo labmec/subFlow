@@ -50,4 +50,21 @@ public:
 
   /// Initialize the SFI data transfer structure
   void Initialize();
+
+  /// Run the SFI scheme
+  void Run(std::ostream &out = std::cout) override;
+
+  // Run a SFI iteration
+  void RunTimeStep(std::ostream &out = std::cout);
+
+  // Transfer data from Transport to Darcy
+  void TransferTransportToDarcy();
+
+  // Transfer data from Darcy to Transport
+  void TransferDarcyToTransport();
+
+  /// Render a vtk file with requested variables for a time step
+  void PostProcessTimeStep(const int type, const int dim, int step = -1);
+
+  void UpdateLastStateVariables();
 };
