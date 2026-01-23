@@ -49,22 +49,23 @@ public:
 
     std::vector<REAL> fEqNumber;
     std::vector<REAL> fVolume;
-    std::vector<REAL> fVolumefactor;
     std::vector<REAL> fMatId;
     std::vector<REAL> fGeoIndex;
     std::vector<REAL> fPressure;
     std::vector<REAL> fSaturation;
     std::vector<REAL> fSaturationLastState;
-    std::vector<REAL> fDensityGas;
-    std::vector<REAL> fDdensityGasdp;
-    std::vector<REAL> fDensityGasLastState;
     std::vector<REAL> fDensityWater;
     std::vector<REAL> fDdensityWaterdp;
     std::vector<REAL> fDensityWaterLastState;
+    std::vector<REAL> fVolumeFactorWater;
+    std::vector<REAL> fDensityGas;
+    std::vector<REAL> fDdensityGasdp;
+    std::vector<REAL> fDensityGasLastState;
+    std::vector<REAL> fVolumeFactorGas;
     std::vector<REAL> fMixedDensity;
     std::vector<REAL> fLambda;
     std::vector<REAL> fDlambdaWaterdsw;
-    std::vector<REAL> fDlambdaGasdsw; 
+    std::vector<REAL> fDlambdaGasdsw;
     std::vector<REAL> fPorosity;
     std::vector<REAL> fKappa;
 
@@ -76,16 +77,15 @@ public:
     std::vector<REAL> fGasfractionalflow;
     std::vector<REAL> fDerivativeGfractionalflow;
 
-    //        std::vector<std::vector<REAL>> fGasfractionalflow;
     std::vector<std::vector<REAL>> fCenterCoordinate;
 
-    // fCompressibility[0] = water, fCompressibility[1]=gas, fCompressibility[2]=gas etc.
+    // [0] = water, [1] = gas
     std::vector<REAL> fCompressibility;
     std::vector<REAL> fViscosity;
     std::vector<REAL> fReferencePressures;
     std::vector<REAL> fReferenceDensity;
 
-    TCellData() : fSimData(0), fEqNumber(0), fVolume(0), fVolumefactor(0), fMatId(0), fGeoIndex(0), fSaturation(0), fPressure(0), fSaturationLastState(0), fDensityGas(0), fDdensityGasdp(0), fDensityGasLastState(0), fDensityWater(0), fDdensityWaterdp(0), fDensityWaterLastState(0), fMixedDensity(0), fLambda(0), fDlambdaWaterdsw(0), fDlambdaGasdsw(0), fPorosity(0), fKappa(0), fWaterfractionalflow(0), fDerivativeWfractionalflow(0), fGasfractionalflow(0), fDerivativeGfractionalflow(0), fCenterCoordinate(0),
+    TCellData() : fSimData(0), fEqNumber(0), fVolume(0), fVolumeFactorWater(0), fMatId(0), fGeoIndex(0), fSaturation(0), fPressure(0), fSaturationLastState(0), fDensityGas(0), fDdensityGasdp(0), fDensityGasLastState(0), fDensityWater(0), fDdensityWaterdp(0), fDensityWaterLastState(0), fMixedDensity(0), fLambda(0), fDlambdaWaterdsw(0), fDlambdaGasdsw(0), fPorosity(0), fKappa(0), fWaterfractionalflow(0), fDerivativeWfractionalflow(0), fGasfractionalflow(0), fDerivativeGfractionalflow(0), fCenterCoordinate(0),
                   fCompressibility(0), fViscosity(0), fReferencePressures(0),
                   fReferenceDensity(0) {
     }
@@ -94,7 +94,8 @@ public:
 
     void SetNumCells(int64_t ncells) {
       fVolume.resize(ncells);
-      fVolumefactor.resize(ncells);
+      fVolumeFactorWater.resize(ncells);
+      fVolumeFactorGas.resize(ncells);
       fMatId.resize(ncells);
       fGeoIndex.resize(ncells);
       fEqNumber.resize(ncells);
@@ -113,7 +114,7 @@ public:
       fMixedDensity.resize(ncells);
       fLambda.resize(ncells);
       fDlambdaWaterdsw.resize(ncells);
-      fDlambdaGasdsw    .resize(ncells);
+      fDlambdaGasdsw.resize(ncells);
       fWaterfractionalflow.resize(ncells);
       fDerivativeWfractionalflow.resize(ncells);
       fGasfractionalflow.resize(ncells);
@@ -124,7 +125,6 @@ public:
     void UpdateSaturationsLastState(TPZFMatrix<STATE> &sw);
     void UpdateSaturationsTo(TPZFMatrix<STATE> &sw);
     void UpdateFractionalFlowsAndLambda(int krModel);
-    void UpdateFractionalFlowsAndLambdaQuasiNewton();
     void UpdateDensities();
     void UpdateDensitiesLastState();
     void UpdateMixedDensity();
@@ -135,9 +135,11 @@ public:
   std::map<int, std::pair<int, REAL>> fboundaryCMatVal;
   int fNFluxCoefficients;
   REAL fWaterMassOut = 0.0;
-  REAL fGasMassOut = 0.0;
   REAL fWaterMassIn = 0.0;
+  REAL fWaterMass = 0.0;
+  REAL fGasMassOut = 0.0;
   REAL fGasMassIn = 0.0;
+  REAL fGasMass = 0.0;
   REAL fInitialWaterMass = 0.0;
   REAL fInitialGasMass = 0.0;
 
@@ -161,5 +163,10 @@ public:
   /// Default desconstructor
   ~TSFAlgebraicTransport();
 
+  /// Check Mass Balance
+  void CheckMassBalance(REAL time_step, std::ostream &out = std::cout);
+
+  /// Update the integrated fluxes at the interfaces for a given material id
+  void UpdateInterfacesIntegratedFlux(int matid);
   // PLEASE IMPLEMENT THE CONTRIBUTE METHODS
 };
