@@ -23,15 +23,7 @@ class TSFAlgebraicTransport;
 class TSFDataTransfer {
 
 public:
-  // Spatial reservoir properties and initial saturation
-  std::function<REAL(const TPZVec<REAL> &)> fkx;
-  std::function<REAL(const TPZVec<REAL> &)> fky;
-  std::function<REAL(const TPZVec<REAL> &)> fkz;
-  std::function<REAL(const TPZVec<REAL> &)> fphi;
-  std::function<REAL(const TPZVec<REAL> &)> fs0;
-
-  std::function<std::vector<REAL>(const TPZVec<REAL> &)> fkappa_phi;
-
+  // Reservoir properties and initial saturation functions (of spatial coordinates)
   TPZMultiphysicsCompMesh *fDarcyCmesh;
 
   TPZCompMesh *fTransportCmesh;
@@ -159,7 +151,7 @@ public:
     fTransportCmesh = transport_cmesh;
   }
 
-  // compute the data transfer data structures between the darcy and transport problems
+  // Initialize the datastructures of the transfer object
   void Initialize();
 
   // Initialize the datastructures of the transport object
@@ -177,7 +169,6 @@ public:
   // Identify volume information to the interface data structure (TInterfaceWithVolume)
   // will loop over the interface elements, identify left and right elements and
   // initialize the fInterfaceByGeom data structure
-  void IdentifyVolumeGeometricElements();
   void IdentifyVolumeGeometricElements2();
 
   // print the datastructure

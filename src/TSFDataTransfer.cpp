@@ -1111,14 +1111,18 @@ void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transp
   int64_t nvols = volData.size();
 
   transport.fCellsData.SetNumCells(nvols);
+  
+  // Set initial properties
+  TSFProblemData* simData = transport.fCellsData.fSimData;
   transport.fCellsData.fViscosity.resize(2);
-  transport.fCellsData.fViscosity[0] = 1.0;
-  transport.fCellsData.fViscosity[1] = 1.0;
-  std::cout << __PRETTY_FUNCTION__ << "Filling in property map\n";
+  transport.fCellsData.fViscosity[0] = simData->fTFluidProperties.fWaterViscosity;
+  transport.fCellsData.fViscosity[1] = simData->fTFluidProperties.fGasViscosity;
+  REAL rhow = simData->fTFluidProperties.fWaterDensityRef;
+  REAL rhog = simData->fTFluidProperties.fGasDensityRef;
+  transport.initialMass = 0.0;
 
   for (int64_t i = 0; i < nvols; i++) {
     int64_t celindex = volData[i];
-
     TPZCompEl *cel = fTransportCmesh->Element(celindex);
     TPZGeoEl *gel = cel->Reference();
     int indexgeo = gel->Index();
@@ -1153,8 +1157,8 @@ void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transp
     int eq_number = fTransportCmesh->Block().Position(block_num);
 
     transport.fCellsData.fEqNumber[i] = eq_number;
-    transport.fCellsData.fDensityOil[i] = 1000.00;
-    transport.fCellsData.fDensityWater[i] = 1000.00;
+    transport.fCellsData.fDensityGas[i] = rhog;
+    transport.fCellsData.fDensityWater[i] = rhow;
 
     int dim = gel->Dimension();
     transport.fCellsData.fCenterCoordinate[i].resize(3);
@@ -1164,26 +1168,72 @@ void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transp
     TPZManVector<REAL, 3> coord(3, 0.0);
     gel->X(ximasscent, coord);
 
-    REAL s0_v = 0.0;
-    auto s0_func = transport.fCellsData.fSimData->fTReservoirProperties.fS0;
-    if (s0_func) {
-      fs0 = s0_func;
-      s0_v = fs0(coord);
-    }
-
-    transport.fCellsData.fSaturation[i] = s0_v;
-    transport.fCellsData.fSaturationLastState[i] = s0_v;
-
     for (int ic = 0; ic < 3; ic++) {
       center[ic] = coord[ic];
     };
     transport.fCellsData.fCenterCoordinate[i] = center;
     transport.fCellsData.fGeoIndex[i] = indexgeo;
+
+    // set constant porosity and permeability by matid
+    bool fountmat = false;
+    for (auto j : simData->fTReservoirProperties.fPorosityAndPermeability) {
+      int key = std::get<0>(j);
+      std::pair<REAL, REAL> porosityAndPermeability = std::get<1>(j);
+      if (key == matId) {
+        transport.fCellsData.fPorosity[i] = porosityAndPermeability.first;
+        transport.fCellsData.fKappa[i] = porosityAndPermeability.second;
+        fountmat = true;
+        break;
+      }
+    }
+    if (!fountmat) DebugStop();
+
+    // Setting initial saturation, porosity and kappa using functions if provided
+    REAL s0_value = 0.0;
+    auto s0_func = transport.fCellsData.fSimData->fTReservoirProperties.fS0Func;
+    if (s0_func) s0_value = s0_func(coord);
+    transport.fCellsData.fSaturation[i] = s0_value;
+    transport.fCellsData.fSaturationLastState[i] = s0_value;
+
+    auto kappa_func = transport.fCellsData.fSimData->fTReservoirProperties.fKappaFunc;
+    if (kappa_func) {
+      REAL kappa_value = kappa_func(coord);
+      transport.fCellsData.fKappa[i] = kappa_value;
+    }
+
+    auto porosity_func = transport.fCellsData.fSimData->fTReservoirProperties.fPorosityFunc;
+    if (porosity_func) {
+      REAL porosity_value = porosity_func(coord);
+      transport.fCellsData.fPorosity[i] = porosity_value;
+    }
+
+    // compute the initial mass of both phases
+    // PLEASE NOTE: If the initial pressure is not zero (or equal to the reference pressure)
+    // We must transfer the prefurre from the Darcy problem first, update the density and then compute the initial mass
+    // NEEDS TO BE IMPLEMENTED
+    REAL phi = transport.fCellsData.fPorosity[i];
+    REAL V = transport.fCellsData.fVolume[i];
+    REAL Sw = transport.fCellsData.fSaturation[i];
+    REAL Sg = 1.0 - Sw;
+    REAL rhow = transport.fCellsData.fDensityWater[i];
+    REAL rhog = transport.fCellsData.fDensityGas[i];
+    transport.fInitialGasMass += phi * V * Sg * rhog;
+    transport.fInitialWaterMass += phi * V * Sw * rhow;
+
+    for (auto &chunk : simData->fTBoundaryConditions.fBCTransportMatIdToTypeValue) {
+      const int idVal = chunk.first;
+      std::pair<int, REAL> &typeAndVal = chunk.second;
+      const int idType = typeAndVal.first;
+      const REAL idValue = typeAndVal.second;
+      std::pair<int, REAL> bccond = std::make_pair(idType, idValue);
+      transport.fboundaryCMatVal[idVal] = bccond;
+    }
   }
 
   InitializeVectorPointersTransportToDarcy(transport);
   InitializeVectorPointersDarcyToTransport(transport);
   CheckDataTransferTransportToDarcy();
+  
 }
 
 TSFDataTransfer::TFromDarcyToTransport::TFromDarcyToTransport() : fMatid(-1), flux_sequence(-1), fFrom(0), fTarget(0), fDarcyCmesh(nullptr) {}
@@ -1293,27 +1343,27 @@ void TSFDataTransfer::TransferLambdaCoefficients() {
         }
       }
       int64_t cellindex = meshit.fAlgebraicTransportCellIndex[icell];
-      REAL lambda = meshit.fTransport->fCellsData.flambda[cellindex];
+      REAL lambda = meshit.fTransport->fCellsData.fLambda[cellindex];
       condensed->SetLambda(lambda);
 
       REAL mixedDensity = meshit.fTransport->fCellsData.fMixedDensity[cellindex];
       condensed->SetMixedDensity(mixedDensity);
 
-      REAL porosity = meshit.fTransport->fCellsData.fporosity[cellindex];
+      REAL porosity = meshit.fTransport->fCellsData.fPorosity[cellindex];
       REAL dt = meshit.fTransport->fCellsData.fSimData->fTNumerics.fDt;
       REAL sw = meshit.fTransport->fCellsData.fSaturation[cellindex];
       REAL so = 1 - sw;
-      REAL drhoWdp = meshit.fTransport->fCellsData.fdDensityWaterdp[cellindex];
-      REAL drhoOdp = meshit.fTransport->fCellsData.fdDensityOildp[cellindex];
+      REAL drhoWdp = meshit.fTransport->fCellsData.fDdensityWaterdp[cellindex];
+      REAL drhoOdp = meshit.fTransport->fCellsData.fDdensityGasdp[cellindex];
       REAL compterm = -(porosity / dt) * ((sw * drhoWdp) + (so * drhoOdp)); // negative sign in accordance with the lyx
 
       REAL swlast = meshit.fTransport->fCellsData.fSaturationLastState[cellindex];
       REAL solast = 1.0 - swlast;
       REAL plast = meshit.fTransport->fCellsData.fPressure[cellindex];
       REAL rhoW = meshit.fTransport->fCellsData.fDensityWater[cellindex];
-      REAL rhoO = meshit.fTransport->fCellsData.fDensityOil[cellindex];
+      REAL rhoO = meshit.fTransport->fCellsData.fDensityGas[cellindex];
       REAL rhoWlast = meshit.fTransport->fCellsData.fDensityWaterLastState[cellindex];
-      REAL rhoOlast = meshit.fTransport->fCellsData.fDensityOilLastState[cellindex];
+      REAL rhoOlast = meshit.fTransport->fCellsData.fDensityGasLastState[cellindex];
       REAL termrhscurrent = (sw * rhoW) + (so * rhoO);
       REAL termrhslast = (swlast * rhoWlast) + (solast * rhoOlast);
       REAL comptermrhs = (porosity / dt) * (termrhscurrent - termrhslast) + compterm * plast;
@@ -1378,9 +1428,9 @@ void TSFDataTransfer::TransferPermeabiliyTensor() {
       PermeabilityT.Redim(3, 3);
       InvPerm.Redim(3, 3);
       int64_t transportcell = meshit.fAlgebraicTransportCellIndex[icell];
-      PermeabilityT(0, 0) = (celldata.fKx)[transportcell];
-      PermeabilityT(1, 1) = (celldata.fKy)[transportcell];
-      PermeabilityT(2, 2) = (celldata.fKz)[transportcell];
+      PermeabilityT(0, 0) = (celldata.fKappa)[transportcell];
+      PermeabilityT(1, 1) = (celldata.fKappa)[transportcell];
+      PermeabilityT(2, 2) = (celldata.fKappa)[transportcell];
       InvPerm(0, 0) = 1.0 / (PermeabilityT(0, 0));
       InvPerm(1, 1) = 1.0 / (PermeabilityT(1, 1));
       InvPerm(2, 2) = 1.0 / (PermeabilityT(2, 2));
