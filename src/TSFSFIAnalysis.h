@@ -50,10 +50,4 @@ public:
 
   /// Initialize the SFI data transfer structure
   void Initialize();
-
-  /// Build the data transfer structure between subproblems
-  void InitializeDataTransferStructure();
-
-  /// Initialize the Algebraic transport data structure
-  void InitializeAlgebraicTransport();
 };
