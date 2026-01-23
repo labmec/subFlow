@@ -280,7 +280,13 @@ public:
     std::map<int, std::pair<REAL, REAL>> fPorosityAndPermeability;
 
     // Function that given a point (x,y,z) returns s0 (initial saturation)
-    std::function<REAL(const TPZVec<REAL> &)> fS0;
+    std::function<REAL(const TPZVec<REAL> &)> fS0Func;
+
+    // Function that given a point (x,y,z) returns permeability
+    std::function<REAL(const TPZVec<REAL> &)> fKappaFunc;
+
+    // Function that given a point (x,y,z) returns porosity
+    std::function<REAL(const TPZVec<REAL> &)> fPorosityFunc;
 
     /** @brief Default constructor */
     TReservoirProperties() {
@@ -294,13 +300,17 @@ public:
     /** @brief Copy constructor */
     TReservoirProperties(const TReservoirProperties &other) {
       fPorosityAndPermeability = other.fPorosityAndPermeability;
-      fS0 = other.fS0;
+      fS0Func = other.fS0Func;
+      fKappaFunc = other.fKappaFunc;
+      fPorosityFunc = other.fPorosityFunc;
     }
 
     /** @brief Copy assignment operator*/
     TReservoirProperties &operator=(const TReservoirProperties &other) {
       fPorosityAndPermeability = other.fPorosityAndPermeability;
-      fS0 = other.fS0;
+      fS0Func = other.fS0Func;
+      fKappaFunc = other.fKappaFunc;
+      fPorosityFunc = other.fPorosityFunc;
       return *this;
     }
   };

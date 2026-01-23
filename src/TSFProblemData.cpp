@@ -391,7 +391,10 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
       TSFFunctionsGenerator functionGen;
       functionGen.SetS0FuncType(s0_functionType, constVal);
       auto s0func = functionGen.CreateS0();
-      fTReservoirProperties.fS0 = s0func;
+      fTReservoirProperties.fS0Func = s0func;
+
+      // PLEASE NOTE: The permeability and porosity functions can also be set here in a similar way
+      // IMPLEMENT ME!
     }
   }
 
