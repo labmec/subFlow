@@ -412,6 +412,14 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     if (postprocess.find("PostProcessFrequency") != postprocess.end()) {
       fTPostProcess.fPostProcessFrequency = postprocess["PostProcessFrequency"];
     }
+    if (postprocess.find("ProblemTypeInit") != postprocess.end()) {
+      fTPostProcess.fProblemTypeInit = postprocess["ProblemTypeInit"];
+    }
+    if (postprocess.find("ProblemType") != postprocess.end()) {
+      fTPostProcess.fProblemType = postprocess["ProblemType"];
+      if (fTNumerics.fIsLinearTrace)
+        fTPostProcess.fProblemType = 2; // In case of linear trace, Darcy is only post processed once
+    }
     if (postprocess.find("NThreads") != postprocess.end()) {
       fTPostProcess.fNThreads = postprocess["NThreads"];
     }

@@ -713,6 +713,16 @@ public:
     TPZStack<REAL, 100> fVecReportingTimes;
 
     /**
+     * @brief Problem to be PostProcessed at initial time step. 0 - Both, 1 - Darcy, 2 - Transport
+     */
+    int fProblemTypeInit;
+
+    /**
+     * @brief Problem to be PostProcessed at remaining time steps. 0 - Both, 1 - Darcy, 2 - Transport
+     */
+    int fProblemType;
+
+    /**
      * @brief Number of threads used for post-processing
      */
     int fNThreads;
@@ -720,7 +730,7 @@ public:
     /**
      * @brief VTK resolution for post-processing
      */
-    int fvtkResolution = 0;
+    int fvtkResolution;
 
     /**
      * @brief Default constructor
@@ -736,6 +746,8 @@ public:
       fFileTimeStep = 0.0;
       fPostProcessFrequency = 1;
       fVecReportingTimes.Resize(0);
+      fProblemTypeInit = 0;
+      fProblemType = 0;
       fNThreads = 0;
       fvtkResolution = 0;
     }
@@ -757,6 +769,8 @@ public:
       fFileTimeStep = other.fFileTimeStep;
       fPostProcessFrequency = other.fPostProcessFrequency;
       fVecReportingTimes = other.fVecReportingTimes;
+      fProblemTypeInit = other.fProblemTypeInit;
+      fProblemType = other.fProblemType;
       fNThreads = other.fNThreads;
       fvtkResolution = other.fvtkResolution;
     }
@@ -777,6 +791,8 @@ public:
       fFileTimeStep = other.fFileTimeStep;
       fPostProcessFrequency = other.fPostProcessFrequency;
       fVecReportingTimes = other.fVecReportingTimes;
+      fProblemTypeInit = other.fProblemTypeInit;
+      fProblemType = other.fProblemType;
       fNThreads = other.fNThreads;
       fvtkResolution = other.fvtkResolution;
 
@@ -797,6 +813,8 @@ public:
              fFileTimeStep == other.fFileTimeStep &&
              fPostProcessFrequency == other.fPostProcessFrequency &&
              fVecReportingTimes == other.fVecReportingTimes &&
+             fProblemTypeInit == other.fProblemTypeInit &&
+             fProblemType == other.fProblemType &&
              fNThreads == other.fNThreads &&
              fvtkResolution == other.fvtkResolution;
     }
@@ -810,6 +828,8 @@ public:
       buf.Write(&fFileTimeStep);
       buf.Write(&fPostProcessFrequency);
       buf.Write(fVecReportingTimes);
+      buf.Write(&fProblemTypeInit);
+      buf.Write(&fProblemType);
       buf.Write(&fNThreads);
       buf.Write(&fvtkResolution);
     }
@@ -823,6 +843,8 @@ public:
       buf.Read(&fFileTimeStep);
       buf.Read(&fPostProcessFrequency);
       buf.Read(fVecReportingTimes);
+      buf.Read(&fProblemTypeInit);
+      buf.Read(&fProblemType);
       buf.Read(&fNThreads);
       buf.Read(&fvtkResolution);
     }
@@ -837,6 +859,8 @@ public:
       std::cout << fFileTimeStep << std::endl;
       std::cout << fPostProcessFrequency << std::endl;
       std::cout << fVecReportingTimes << std::endl;
+      std::cout << fProblemTypeInit << std::endl;
+      std::cout << fProblemType << std::endl;
       std::cout << fNThreads << std::endl;
       std::cout << fvtkResolution << std::endl;
     }

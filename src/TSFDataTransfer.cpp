@@ -1111,15 +1111,16 @@ void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transp
   int64_t nvols = volData.size();
 
   transport.fCellsData.SetNumCells(nvols);
-  
+
   // Set initial properties
-  TSFProblemData* simData = transport.fCellsData.fSimData;
+  TSFProblemData *simData = transport.fCellsData.fSimData;
   transport.fCellsData.fViscosity.resize(2);
   transport.fCellsData.fViscosity[0] = simData->fTFluidProperties.fWaterViscosity;
   transport.fCellsData.fViscosity[1] = simData->fTFluidProperties.fGasViscosity;
   REAL rhow = simData->fTFluidProperties.fWaterDensityRef;
   REAL rhog = simData->fTFluidProperties.fGasDensityRef;
-  transport.initialMass = 0.0;
+  transport.fInitialGasMass = 0.0;
+  transport.fInitialWaterMass = 0.0;
 
   for (int64_t i = 0; i < nvols; i++) {
     int64_t celindex = volData[i];
@@ -1233,7 +1234,6 @@ void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transp
   InitializeVectorPointersTransportToDarcy(transport);
   InitializeVectorPointersDarcyToTransport(transport);
   CheckDataTransferTransportToDarcy();
-  
 }
 
 TSFDataTransfer::TFromDarcyToTransport::TFromDarcyToTransport() : fMatid(-1), flux_sequence(-1), fFrom(0), fTarget(0), fDarcyCmesh(nullptr) {}
@@ -1289,6 +1289,8 @@ void TSFDataTransfer::TransferDarcyMeshMultiplyingCoefficients() {
     }
   }
 }
+
+// transfer the pressure from the mixed mesh elements to the transport mesh
 void TSFDataTransfer::TransferPressures() {
   for (auto &meshit : fCorrespondence) {
     int64_t ncells = meshit.fAlgebraicTransportCellIndex.size();
@@ -1320,6 +1322,7 @@ void TSFDataTransfer::TransferPressures() {
     }
   }
 }
+
 // transfer the permeability multiplier from the transport mesh to the mixed mesh elements
 void TSFDataTransfer::TransferLambdaCoefficients() {
 
@@ -1397,47 +1400,6 @@ void TSFDataTransfer::TransferSaturation() {
       int64_t cellindex = meshit.fAlgebraicTransportCellIndex[icell];
       REAL sw = meshit.fTransport->fCellsData.fSaturation[cellindex];
       condensed->SetSw(sw);
-    }
-  }
-}
-
-void TSFDataTransfer::TransferPermeabiliyTensor() {
-  CheckDataTransferTransportToDarcy();
-  for (auto &meshit : fCorrespondence) {
-    TSFAlgebraicTransport::TCellData &celldata = meshit.fTransport->fCellsData;
-    int64_t ncells = meshit.fAlgebraicTransportCellIndex.size();
-    for (int icell = 0; icell < ncells; icell++) {
-#ifdef PZDEBUG
-      if (meshit.fTransport == 0 || meshit.fEqNum[icell] >= ncells) {
-        DebugStop();
-      }
-#endif
-      TPZCompEl *cel = meshit.fDarcyCels[icell];
-      TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
-      if (!condensed) {
-        TPZCondensedCompEl *condcompel = dynamic_cast<TPZCondensedCompEl *>(cel);
-        if (condcompel) {
-          std::cout << "Element " << cel->Index() << " is not FastCondensed" << std::endl;
-          continue;
-        } else {
-          DebugStop();
-        }
-      }
-
-      TPZFNMatrix<9, REAL> PermeabilityT, InvPerm;
-      PermeabilityT.Redim(3, 3);
-      InvPerm.Redim(3, 3);
-      int64_t transportcell = meshit.fAlgebraicTransportCellIndex[icell];
-      PermeabilityT(0, 0) = (celldata.fKappa)[transportcell];
-      PermeabilityT(1, 1) = (celldata.fKappa)[transportcell];
-      PermeabilityT(2, 2) = (celldata.fKappa)[transportcell];
-      InvPerm(0, 0) = 1.0 / (PermeabilityT(0, 0));
-      InvPerm(1, 1) = 1.0 / (PermeabilityT(1, 1));
-      InvPerm(2, 2) = 1.0 / (PermeabilityT(2, 2));
-      TPZGeoEl *gel = cel->Reference();
-      //       meshit.fMixedCell[icell]->SetPermTensorAndInv(PermeabilityT,InvPerm) ;
-      condensed->SetPermTensorAndInv(PermeabilityT, InvPerm);
-      condensed->SetMixedDensity((celldata.fMixedDensity)[transportcell]);
     }
   }
 }
