@@ -55,39 +55,37 @@ public:
     std::vector<REAL> fPressure;
     std::vector<REAL> fSaturation;
     std::vector<REAL> fSaturationLastState;
-    std::vector<REAL> fDensityOil;
-    std::vector<REAL> fdDensityOildp;
-    std::vector<REAL> fDensityOilLastState;
+    std::vector<REAL> fDensityGas;
+    std::vector<REAL> fDdensityGasdp;
+    std::vector<REAL> fDensityGasLastState;
     std::vector<REAL> fDensityWater;
-    std::vector<REAL> fdDensityWaterdp;
+    std::vector<REAL> fDdensityWaterdp;
     std::vector<REAL> fDensityWaterLastState;
     std::vector<REAL> fMixedDensity;
-    std::vector<REAL> flambda;
-    std::vector<REAL> fdlambdawdsw;
-    std::vector<REAL> fdlambdaodsw;
-    std::vector<REAL> fporosity;
-    std::vector<REAL> fKx;
-    std::vector<REAL> fKy;
-    std::vector<REAL> fKz;
+    std::vector<REAL> fLambda;
+    std::vector<REAL> fDlambdaWaterdsw;
+    std::vector<REAL> fDlambdaGasdsw; 
+    std::vector<REAL> fPorosity;
+    std::vector<REAL> fKappa;
 
     // Fractional flow and its derivative
     // un vetor para fracional y outro para a derivada.
     //  center o cord x, y, z tres vetores.
     std::vector<REAL> fWaterfractionalflow;
     std::vector<REAL> fDerivativeWfractionalflow;
-    std::vector<REAL> fOilfractionalflow;
-    std::vector<REAL> fDerivativeOfractionalflow;
+    std::vector<REAL> fGasfractionalflow;
+    std::vector<REAL> fDerivativeGfractionalflow;
 
-    //        std::vector<std::vector<REAL>> fOilfractionalflow;
+    //        std::vector<std::vector<REAL>> fGasfractionalflow;
     std::vector<std::vector<REAL>> fCenterCoordinate;
 
-    // fCompressibility[0] = water, fCompressibility[1]=oil, fCompressibility[2]=gas etc.
+    // fCompressibility[0] = water, fCompressibility[1]=gas, fCompressibility[2]=gas etc.
     std::vector<REAL> fCompressibility;
     std::vector<REAL> fViscosity;
     std::vector<REAL> fReferencePressures;
     std::vector<REAL> fReferenceDensity;
 
-    TCellData() : fSimData(0), fEqNumber(0), fVolume(0), fVolumefactor(0), fMatId(0), fGeoIndex(0), fSaturation(0), fPressure(0), fSaturationLastState(0), fDensityOil(0), fdDensityOildp(0), fDensityOilLastState(0), fDensityWater(0), fdDensityWaterdp(0), fDensityWaterLastState(0), fMixedDensity(0), flambda(0), fdlambdawdsw(0), fdlambdaodsw(0), fporosity(0), fKx(0), fKy(0), fKz(0), fWaterfractionalflow(0), fDerivativeWfractionalflow(0), fOilfractionalflow(0), fDerivativeOfractionalflow(0), fCenterCoordinate(0),
+    TCellData() : fSimData(0), fEqNumber(0), fVolume(0), fVolumefactor(0), fMatId(0), fGeoIndex(0), fSaturation(0), fPressure(0), fSaturationLastState(0), fDensityGas(0), fDdensityGasdp(0), fDensityGasLastState(0), fDensityWater(0), fDdensityWaterdp(0), fDensityWaterLastState(0), fMixedDensity(0), fLambda(0), fDlambdaWaterdsw(0), fDlambdaGasdsw(0), fPorosity(0), fKappa(0), fWaterfractionalflow(0), fDerivativeWfractionalflow(0), fGasfractionalflow(0), fDerivativeGfractionalflow(0), fCenterCoordinate(0),
                   fCompressibility(0), fViscosity(0), fReferencePressures(0),
                   fReferenceDensity(0) {
     }
@@ -103,25 +101,23 @@ public:
       fSaturation.resize(ncells);
       fPressure.resize(ncells);
       fSaturationLastState.resize(ncells);
-      fporosity.resize(ncells);
-      fKx.resize(ncells);
-      fKy.resize(ncells);
-      fKz.resize(ncells);
+      fPorosity.resize(ncells);
+      fKappa.resize(ncells);
       fPressure.resize(ncells);
-      fDensityOil.resize(ncells);
-      fdDensityOildp.resize(ncells);
-      fDensityOilLastState.resize(ncells);
+      fDensityGas.resize(ncells);
+      fDdensityGasdp.resize(ncells);
+      fDensityGasLastState.resize(ncells);
       fDensityWater.resize(ncells);
-      fdDensityWaterdp.resize(ncells);
+      fDdensityWaterdp.resize(ncells);
       fDensityWaterLastState.resize(ncells);
       fMixedDensity.resize(ncells);
-      flambda.resize(ncells);
-      fdlambdawdsw.resize(ncells);
-      fdlambdaodsw.resize(ncells);
+      fLambda.resize(ncells);
+      fDlambdaWaterdsw.resize(ncells);
+      fDlambdaGasdsw    .resize(ncells);
       fWaterfractionalflow.resize(ncells);
       fDerivativeWfractionalflow.resize(ncells);
-      fOilfractionalflow.resize(ncells);
-      fDerivativeOfractionalflow.resize(ncells);
+      fGasfractionalflow.resize(ncells);
+      fDerivativeGfractionalflow.resize(ncells);
       fCenterCoordinate.resize(ncells);
     }
     void UpdateSaturations(TPZFMatrix<STATE> &dsx);
@@ -132,14 +128,18 @@ public:
     void UpdateDensities();
     void UpdateDensitiesLastState();
     void UpdateMixedDensity();
-    void SetDataTransfer(TSFProblemData *simdata);
+    void SetProblemData(TSFProblemData *simdata);
     void Print(std::ostream &out);
   };
 
   std::map<int, std::pair<int, REAL>> fboundaryCMatVal;
   int fNFluxCoefficients;
-  REAL massOut = 0.0;
-  REAL initialMass = 0.0;
+  REAL fWaterMassOut = 0.0;
+  REAL fGasMassOut = 0.0;
+  REAL fWaterMassIn = 0.0;
+  REAL fGasMassIn = 0.0;
+  REAL fInitialWaterMass = 0.0;
+  REAL fInitialGasMass = 0.0;
 
   // number of volumetric elements in the transport mesh
   int fNVolumesTransport;
@@ -160,8 +160,6 @@ public:
 
   /// Default desconstructor
   ~TSFAlgebraicTransport();
-
-  void BuildDataStructures(TPZMultiphysicsCompMesh &transportmesh);
 
   // PLEASE IMPLEMENT THE CONTRIBUTE METHODS
 };

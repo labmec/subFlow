@@ -31,3 +31,7 @@ const TSFAlgebraicTransport &TSFAlgebraicTransport::operator=(const TSFAlgebraic
 
 /// Default destructor
 TSFAlgebraicTransport::~TSFAlgebraicTransport() {}
+
+void TSFAlgebraicTransport::TCellData::SetProblemData(TSFProblemData *simData){
+    fSimData = simData;
+}
