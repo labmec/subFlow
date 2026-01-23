@@ -47,7 +47,7 @@ void TSFDarcyAnalysis::Initialize() {
   std::cout << "Number of elements: " << fCompMesh->NElements() << std::endl;
 }
 
-void TSFDarcyAnalysis::RunTimeStep() {
+void TSFDarcyAnalysis::RunTimeStep(std::ostream &out) {
   TPZMultiphysicsCompMesh *cmesh = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
   if (!cmesh) DebugStop();
 
@@ -66,12 +66,12 @@ void TSFDarcyAnalysis::RunTimeStep() {
     if (fKiteration > 0) {
       TPZFMatrix<STATE> rhs = Rhs();
       res_norm = Norm(rhs);
-      std::cout << "------Newton iteration: " << fKiteration << std::endl;
-      std::cout << "---------Residual norm: " << res_norm << std::endl;
-      std::cout << "---------Correction norm: " << corr_norm << std::endl;
+      out << "------Newton iteration: " << fKiteration << std::endl;
+      out << "---------Residual norm: " << res_norm << std::endl;
+      out << "---------Correction norm: " << corr_norm << std::endl;
       if (res_norm < res_tol || corr_norm < corr_tol) {
-        std::cout << "------Iterative method converged with res_norm: " << res_norm << std::endl;
-        std::cout << "------Number of iterations = " << fKiteration << std::endl;
+        out << "------Iterative method converged with res_norm: " << res_norm << std::endl;
+        out << "------Number of iterations = " << fKiteration << std::endl;
         converged = true;
         fSolution = sol;
         break;
@@ -226,4 +226,70 @@ void TSFDarcyAnalysis::ApplyEquationFilter(std::set<int> &neumannMatids) {
   TPZEquationFilter filter(fCompMesh->NEquations());
   filter.ExcludeEquations(removeEquations);
   fStructMatrix->EquationFilter() = filter;
+}
+
+void TSFDarcyAnalysis::SetLastStateVariables() {
+  TPZCompMesh *cmesh = Mesh();
+#ifdef PZDEBUG
+  TPZMultiphysicsCompMesh *mp_cmesh = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
+  if (!cmesh)
+    DebugStop();
+#endif
+
+  int nels = cmesh->NElements();
+  for (int iel = 0; iel < nels; iel++) {
+    TPZCompEl *cel = cmesh->Element(iel);
+    TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
+    if (!condensed) continue;
+
+    REAL sw = condensed->GetSw();
+    condensed->SetSwLast(sw);
+
+    TPZCompEl *compel = condensed->ReferenceCompEl();
+    int dim = compel->Dimension();
+    TPZVec<REAL> qsi(dim, 0.0);
+    TPZVec<STATE> sol(dim, 0.0);
+    int presureindex = 2;
+    compel->Solution(qsi, presureindex, sol);
+    REAL pressure = sol[0];
+    condensed->SetPressureLastState(pressure);
+  }
+}
+
+void TSFDarcyAnalysis::SetLastStateSaturation() {
+  TPZMultiphysicsCompMesh *cmesh = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
+  if (!cmesh)
+    DebugStop();
+
+  int nels = cmesh->NElements();
+  for (int iel = 0; iel < nels; iel++) {
+    TPZCompEl *cel = cmesh->Element(iel);
+    TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
+    if (!condensed) continue;
+
+    REAL sw = condensed->GetSw();
+    condensed->SetSwLast(sw);
+  }
+}
+
+void TSFDarcyAnalysis::SetLastStatePressure() {
+  TPZMultiphysicsCompMesh *cmesh = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
+  if (!cmesh)
+    DebugStop();
+
+  int nels = cmesh->NElements();
+  for (int iel = 0; iel < nels; iel++) {
+    TPZCompEl *cel = cmesh->Element(iel);
+    TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
+    if (!condensed) continue;
+
+    TPZCompEl *compel = condensed->ReferenceCompEl();
+    int dim = compel->Dimension();
+    TPZVec<REAL> qsi(dim, 0.0);
+    TPZVec<STATE> sol(dim, 0.0);
+    int presureindex = 2;
+    compel->Solution(qsi, presureindex, sol);
+    REAL pressure = sol[0];
+    condensed->SetPressureLastState(pressure);
+  }
 }

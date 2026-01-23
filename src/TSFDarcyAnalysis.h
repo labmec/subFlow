@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "TPZFastCondensedElement.h"
 #include "TPZLinearAnalysis.h"
 #include "TPZMultiphysicsCompMesh.h"
 #include "TPZSSpStructMatrix.h"
@@ -45,7 +46,7 @@ public:
   int GetNumberOfIterations();
 
   /// Run a time step
-  void RunTimeStep();
+  void RunTimeStep(std::ostream &out = std::cout);
 
   /// Render a vtk file with requested variables for a time step
   void PostProcessTimeStep(int dimToPost = -1, int step = -1);
