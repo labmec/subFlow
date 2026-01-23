@@ -54,7 +54,7 @@ public:
   int GetNumberOfIterations();
 
   /// Run a time step
-  void RunTimeStep();
+  void RunTimeStep(std::ostream &out = std::cout);
 
   /// Render a vtk file with requested variables for a time step
   void PostProcessTimeStep(int dimToPost = -1, int step = -1);
@@ -72,26 +72,18 @@ public:
 
   void AssembleTransmissibility();
 
-  /// Fill the set of material ids related to Neumann BCs
-  /// This method is used to apply Neumann BCs without using BigNumbers
-  void FillNeumannBCMatids(std::set<int> &neumannMatids);
-
-  /// Set the initial solution based on the boundary conditions
-  /// This method is used to apply Neumann BCs without using BigNumbers
-  void SetInitialSolution(std::set<int> &neumannMatids);
-
-  /// Remove equations related to Neumann BCs from the system
-  /// This method is used to apply Neumann BCs without using BigNumbers
-  void ApplyEquationFilter(std::set<int> &neumannMatids);
-
   /// Verifies if the sum of the fluxes over all faces of an element is zero
   void VerifyElementFluxes();
 
   /// Update the density and coefficients
   void UpdateDensityAndCoefficients();
 
+  /// SetInitialSaturation
+  void SetInitialSaturation();
+
   /// Update the last state variables (saturation and pressure)
   void SetLastStateVariables();
   void SetLastStateSaturation();
-  void SetLastStatePressure();
+  void SetLastStateDensities();
+  void SetLastStateVolumeFactor();
 };

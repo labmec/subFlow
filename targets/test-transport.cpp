@@ -74,6 +74,7 @@ int main(int argc, char *const argv[]) {
     TSFSFIAnalysis SFIAnalysis(darcy_cmesh, transport_cmesh);
     SFIAnalysis.SetProblemData(&simData);
     SFIAnalysis.Initialize();
+    SFIAnalysis.Run();
 
     delete transport_cmesh;
   }
