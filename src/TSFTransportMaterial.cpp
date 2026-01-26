@@ -53,15 +53,15 @@ void TSFTransportMaterial::FillBoundaryConditionDataRequirements(int type, TPZVe
   int ndata = datavec.size();
   for (int idata = 0; idata < ndata; idata++) {
     datavec[idata].SetAllRequirements(false);
-    datavec[idata].fNeedsSol = true;
-    datavec[idata].fNeedsNormal = true;
+    datavec[idata].fNeedsSol = false;
+    datavec[idata].fNeedsNormal = false;
   }
 }
 
 void TSFTransportMaterial::FillDataRequirementsInterface(TPZMaterialData &data) const {
   data.SetAllRequirements(false);
-  data.fNeedsSol = true;
-  data.fNeedsNormal = true;
+  data.fNeedsSol = false;
+  data.fNeedsNormal = false;
   //    if(fLinearContext == false){
   //        data.fNeedsNeighborSol = true;
   //    }
@@ -75,13 +75,13 @@ void TSFTransportMaterial::FillDataRequirementsInterface(TPZMaterialDataT<STATE>
   int nref_left = datavec_left.size();
   for (int iref = 0; iref < nref_left; iref++) {
     datavec_left[iref].SetAllRequirements(false);
-    datavec_left[iref].fNeedsSol = true;
-    datavec_left[iref].fNeedsNormal = true;
+    datavec_left[iref].fNeedsSol = false;
+    datavec_left[iref].fNeedsNormal = false;
   }
   int nref_right = datavec_right.size();
   for (int iref = 0; iref < nref_right; iref++) {
     datavec_right[iref].SetAllRequirements(false);
-    datavec_right[iref].fNeedsSol = true;
+    datavec_right[iref].fNeedsSol = false;
   }
 }
 
@@ -96,7 +96,7 @@ void TSFTransportMaterial::Print(std::ostream &out) const {
 int TSFTransportMaterial::VariableIndex(const std::string &name) const {
 
   if (!strcmp("Sw", name.c_str())) return 0;
-  if (!strcmp("So", name.c_str())) return 1;
+  if (!strcmp("Sg", name.c_str())) return 1;
 
   return TPZMaterial::VariableIndex(name);
 }

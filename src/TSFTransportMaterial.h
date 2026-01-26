@@ -181,13 +181,9 @@ public:
 
   virtual void
   ContributeInterface(const TPZMaterialDataT<STATE> &data, const TPZMaterialDataT<STATE> &dataleft, const TPZMaterialDataT<STATE> &dataright, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef) override {
-
-    DebugStop();
   }
 
   virtual void
   ContributeBCInterface(const TPZMaterialDataT<STATE> &data, const TPZMaterialDataT<STATE> &dataleft, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) override {
-
-    DebugStop();
   }
 };
