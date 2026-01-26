@@ -13,6 +13,9 @@
 class TSFFunctionsGenerator {
 public:
   /// Enumerate defining the function type
+  enum class EP0FunctionType { ENone = 0,
+                               EConstantFunction = 1 };
+
   enum class ES0FunctionType { ENone = 0,
                                EConstantFunction = 1,
                                EPiecewiseFunction = 2,
@@ -20,7 +23,9 @@ public:
                                ERandomCirclesFunction = 5 };
 
   enum class EDarcyBCFunctionType { ENone = 0,
-                                    EHydrostaticPressure = 1 };
+                                    EHydrostaticPressure = 1,
+                                    EInferiorSaturatedPressure = 2,
+                                    ESuperiorSaturatedPressure = 3 };
 
   enum class ETransportBCFunctionType { ENone = 0 };
 
@@ -59,6 +64,14 @@ public:
   /// @brief
   /// @param funcType - function identifier
   /// @param value - optional to set a constant value
+  void SetP0FuncType(EP0FunctionType funcType, REAL value = 0.0) {
+    fP0FuncType = funcType;
+    fVal = value;
+  }
+
+  /// @brief
+  /// @param funcType - function identifier
+  /// @param value - optional to set a constant value
   void SetDarcyBCFuncType(EDarcyBCFunctionType funcType, REAL value = 0.0) {
     fDarcyBCFuncType = funcType;
     fVal = value;
@@ -70,6 +83,28 @@ public:
   void SetTransportBCFuncType(ETransportBCFunctionType funcType, REAL value = 0.0) {
     fTransportBCFuncType = funcType;
     fVal = value;
+  }
+
+  std::function<REAL(const TPZVec<REAL> &)> CreateP0() {
+    switch (fP0FuncType) {
+    case EP0FunctionType::EConstantFunction: {
+      REAL p0 = fVal;
+      return [p0](const TPZVec<REAL> &pt) -> REAL {
+        REAL p = p0;
+        return p;
+      };
+    } break;
+    case EP0FunctionType::ENone: {
+      return nullptr;
+    } break;
+    default: {
+      std::cout << " Function not implemented " << std::endl;
+      DebugStop();
+      return [](const TPZVec<REAL> &pt) -> REAL {
+        return 0;
+      };
+    } break;
+    }
   }
 
   std::function<REAL(const TPZVec<REAL> &)> CreateS0() {
@@ -184,6 +219,30 @@ public:
         rhsVal[0] = p;
       };
     } break;
+    case EDarcyBCFunctionType::EInferiorSaturatedPressure: {
+      // This function is a piece-wise function where the pressure decreases linearly from p0 to pf from t0 to tf,
+      // and then remains constant at pf.
+      REAL p0 = 100.0e3;   // Initial pressure in Pa
+      REAL pf = 0.01 * p0; // Final pressure in Pa
+      REAL tf = 1.0;       // Time at which pressure reaches pf in seconds
+      return [p0, pf, tf](const TPZVec<REAL> &loc, TPZVec<REAL> &rhsVal, TPZFMatrix<REAL> &matVal) {
+        REAL t = loc[3]; // Assuming t = loc[3]
+        REAL p = (t < tf) ? p0 * (1.0 - 0.99 * t) : pf;
+        rhsVal[0] = p;
+      };
+    } break;
+    case EDarcyBCFunctionType::ESuperiorSaturatedPressure: {
+      // This function is a piece-wise function where the pressure increases linearly from p0 to pf from t0 to tf,
+      // and then remains constant at pf.
+      REAL p0 = 100.0;     // Initial pressure in Pa
+      REAL pf = 10.0 * p0; // Final pressure in Pa
+      REAL tf = 1.0;       // Time at which pressure reaches pf in seconds
+      return [p0, pf, tf](const TPZVec<REAL> &loc, TPZVec<REAL> &rhsVal, TPZFMatrix<REAL> &matVal) {
+        REAL t = loc[3]; // Assuming t = loc[3]
+        REAL p = (t < tf) ? p0 * 10.0 * t : pf;
+        rhsVal[0] = p;
+      };
+    } break;
     case EDarcyBCFunctionType::ENone: {
       return nullptr;
     } break;
@@ -209,6 +268,8 @@ public:
   }
 
 private:
+  /// @brief function type for initial pressure
+  EP0FunctionType fP0FuncType;
   /// @brief function type for initial saturation
   ES0FunctionType fS0FuncType;
   /// @brief function type for Darcy boundary conditions
