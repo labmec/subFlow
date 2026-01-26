@@ -215,7 +215,7 @@ void TSFAlgebraicTransport::CheckMassBalance(REAL time_step, std::ostream &out) 
 
 void TSFAlgebraicTransport::UpdateInterfacesIntegratedFlux(int matid) {
 
-  if (fInterfaceData.find(matid) == fInterfaceData.end()) DebugStop();
+  if (fInterfaceData.find(matid) == fInterfaceData.end()) return;
   int nels = fInterfaceData[matid].fCoefficientsFlux.size();
   if (nels == 0) return;
   std::vector<REAL> val = fInterfaceData[matid].fCoefficientsFlux[0];
