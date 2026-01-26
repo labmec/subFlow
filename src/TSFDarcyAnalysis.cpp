@@ -36,7 +36,7 @@ void TSFDarcyAnalysis::Initialize() {
   SetStructuralMatrix(matrix);
   std::set<int> neumannMatids;
   FillNeumannBCMatids(neumannMatids);
-  SetInitialSolution(neumannMatids);
+  SetInitialBCValue(neumannMatids);
   ApplyEquationFilter(neumannMatids);
   int nreducedeq = fStructMatrix->NReducedEquations();
   TPZStepSolver<STATE> step;
@@ -61,7 +61,8 @@ void TSFDarcyAnalysis::RunTimeStep(std::ostream &out) {
   TPZFMatrix<STATE> sol = Solution();
   for (fKiteration = 0; fKiteration < matIter; fKiteration++) {
     Assemble();
-
+    auto mat = MatrixSolver<STATE>().Matrix();
+    mat->Print("stiff matrix ", std::cout, EMathematicaInput);
     // Check residual convergence
     if (fKiteration > 0) {
       TPZFMatrix<STATE> rhs = Rhs();
@@ -148,7 +149,7 @@ void TSFDarcyAnalysis::FillNeumannBCMatids(std::set<int> &neumannMatids) {
   }
 }
 
-void TSFDarcyAnalysis::SetInitialSolution(std::set<int> &neumannMatids) {
+void TSFDarcyAnalysis::SetInitialBCValue(std::set<int> &neumannMatids) {
   fCompMesh->LoadReferences();
   TPZGeoMesh *gmesh = fCompMesh->Reference();
 
@@ -184,6 +185,56 @@ void TSFDarcyAnalysis::SetInitialSolution(std::set<int> &neumannMatids) {
 
   fCompMesh->TransferMultiphysicsSolution();
 
+  // When the internal dofs are condensed, the analysis solution size is different from the cmesh solution size
+  // Analysis only holds the independent equations, while cmesh holds all equations
+  // The independent equations are stored first in the cmesh solution vector, so we just need to copy them to the analysis solution
+  int cmesh_neq = fCompMesh->NEquations();
+  TPZFMatrix<STATE> &sol = Solution();
+  for (int i = 0; i < cmesh_neq; i++) {
+    sol.PutVal(i, 0, cmesh_sol.GetVal(i, 0));
+  }
+}
+
+void TSFDarcyAnalysis::SetInitialSolution() {
+  if (!fSimData->fTReservoirProperties.fP0Func) return;
+  fCompMesh->LoadReferences();
+  TPZGeoMesh *gmesh = fCompMesh->Reference();
+  const int dim = gmesh->Dimension();
+
+  TPZFMatrix<STATE> &cmesh_sol = fCompMesh->Solution();
+  for (auto el : gmesh->ElementVec()) {
+    if (el->Dimension() != dim) continue;
+    int nsides = el->NSides();
+    TPZManVector<REAL, 3> center_local(dim, 0.0);
+    TPZManVector<REAL, 3> center_global(3, 0.0);
+    el->CenterPoint(nsides - 1, center_local);
+    el->X(center_local, center_global);
+
+    TPZCompEl *compEl = el->Reference();
+
+    const int nConnects = compEl->NConnects();
+    const int avgPressureCon = nConnects - 1; // The last connect is the avg pressure connect
+
+    int64_t seq = compEl->Connect(avgPressureCon).SequenceNumber();
+    auto firstEq = fCompMesh->Block().Position(seq);
+
+    int64_t blockSize = fCompMesh->Block().Size(seq);
+
+    REAL val = fSimData->fTReservoirProperties.fP0Func(center_global);
+
+    for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++) {
+      cmesh_sol.PutVal(eq, 0, val);
+    }
+  }
+
+  fCompMesh->TransferMultiphysicsSolution(); // Transfer solution to atomic meshes
+
+  for (auto el : fCompMesh->ElementVec()) { // Compute the internal solution
+    TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(el);
+    if (!condensed) continue;
+    condensed->LoadSolution();
+  }
+  TPZFastCondensedElement::fSkipLoadSolution = false;
   // When the internal dofs are condensed, the analysis solution size is different from the cmesh solution size
   // Analysis only holds the independent equations, while cmesh holds all equations
   // The independent equations are stored first in the cmesh solution vector, so we just need to copy them to the analysis solution
@@ -292,4 +343,9 @@ void TSFDarcyAnalysis::SetLastStatePressure() {
     REAL pressure = sol[0];
     condensed->SetPressureLastState(pressure);
   }
+}
+
+void TSFDarcyAnalysis::SetTime(REAL time) {
+  this->fTime = time;
+  TSFMixedDarcy::fTime = time;
 }

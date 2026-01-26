@@ -8,6 +8,7 @@
 #include "TPZLinearAnalysis.h"
 #include "TPZMultiphysicsCompMesh.h"
 #include "TPZSSpStructMatrix.h"
+#include "TSFMixedDarcy.h"
 #include "TSFProblemData.h"
 #include "pzskylstrmatrix.h"
 #include "pzstepsolver.h"
@@ -64,9 +65,12 @@ public:
   /// This method is used to apply Neumann BCs without using BigNumbers
   void FillNeumannBCMatids(std::set<int> &neumannMatids);
 
-  /// Set the initial solution based on the boundary conditions
+  /// Set the initial value of the boundary conditions
   /// This method is used to apply Neumann BCs without using BigNumbers
-  void SetInitialSolution(std::set<int> &neumannMatids);
+  void SetInitialBCValue(std::set<int> &neumannMatids);
+
+  /// Set the initial solution
+  void SetInitialSolution();
 
   /// Remove equations related to Neumann BCs from the system
   /// This method is used to apply Neumann BCs without using BigNumbers
@@ -82,4 +86,7 @@ public:
   void SetLastStateVariables();
   void SetLastStateSaturation();
   void SetLastStatePressure();
+
+  /// Sets the current time
+  void SetTime(REAL time);
 };
