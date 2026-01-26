@@ -43,13 +43,13 @@ void TSFSFIAnalysis::PostProcessTimeStep(const int type, const int dim, int step
 
   if (type == 0) {
     fDarcyAnalysis.PostProcessTimeStep(dim, step);
-    fTransportAnalysis.PostProcessTimeStep();
+    fTransportAnalysis.PostProcessTimeStep(dim, step);
   }
   if (type == 1) {
     fDarcyAnalysis.PostProcessTimeStep(dim, step);
   }
   if (type == 2) {
-    fTransportAnalysis.PostProcessTimeStep();
+    fTransportAnalysis.PostProcessTimeStep(dim, step);
   }
 
   auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count() / 1000.;
@@ -72,6 +72,7 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
 
   // Initializing Transport solution with initial saturation
   fTransportAnalysis.SetInitialSaturation();
+  fDarcyAnalysis.SetInitialSolution();
   PostProcessTimeStep(fSimData->fTPostProcess.fProblemTypeInit, dim, 0);
 
   // Time stepping loop
@@ -96,6 +97,8 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
     fTransportAnalysis.fAlgebraicTransport.CheckMassBalance(time, out);
   }
   out << "-------------------- Simulation Finished --------------------" << std::endl;
+  std::ofstream darcy_sol("darcy_solution.txt");
+  fDarcyAnalysis.Mesh()->Print(darcy_sol);
 }
 
 void TSFSFIAnalysis::RunTimeStep(std::ostream &out) {
@@ -140,12 +143,12 @@ void TSFSFIAnalysis::RunTimeStep(std::ostream &out) {
     } else if (fKiteration == maxIter) {
       out << "------SFI failed to converge. Darcy norm: " << darcy_norm << " Transport norm: " << transport_norm << std::endl;
     }
-    UpdateLastStateVariables();
   }
+  UpdateLastStateVariables();
 }
 
 void TSFSFIAnalysis::TransferTransportToDarcy() {
-  fDataTransfer.TransferSaturation();
+  fDataTransfer.TransferPropertiesToDarcy();
 }
 
 void TSFSFIAnalysis::TransferDarcyToTransport() {
