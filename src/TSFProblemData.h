@@ -154,13 +154,13 @@ public:
       fSwr = 0.0;
       fSgr = 0.0;
       fKrModel = 0;
-      fKrg.resize(3);
-      fKrw.resize(3);
-      fFg.resize(3);
-      fFw.resize(3);
-      fLambdaw.resize(3);
-      fLambdag.resize(3);
-      fLambdaTotal.resize(3);
+      fKrg.resize(2);
+      fKrw.resize(2);
+      fFg.resize(2);
+      fFw.resize(2);
+      fLambdaw.resize(2);
+      fLambdag.resize(2);
+      fLambdaTotal.resize(2);
     }
 
     /** @brief Destructor */
@@ -278,6 +278,9 @@ public:
   public:
     // associates with a material id the porosity and permeability
     std::map<int, std::pair<REAL, REAL>> fPorosityAndPermeability;
+
+    // Function that given a point (x,y,z) returns p0 (initial pressure)
+    std::function<REAL(const TPZVec<REAL> &)> fP0Func;
 
     // Function that given a point (x,y,z) returns s0 (initial saturation)
     std::function<REAL(const TPZVec<REAL> &)> fS0Func;

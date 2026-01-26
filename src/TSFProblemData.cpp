@@ -119,7 +119,7 @@ void TSFProblemData::TPetroPhysics::CreateQuadraticKrModel() {
   REAL swr = fSwr;
   REAL sgr = fSgr;
 
-  fKrw[2] = [swr](REAL &sw) {
+  fKrw[1] = [swr](REAL &sw) {
     REAL krw = 0;
     REAL dkrw = 0;
     if (sw > swr) {
@@ -130,7 +130,7 @@ void TSFProblemData::TPetroPhysics::CreateQuadraticKrModel() {
     return valderiv;
   };
 
-  fKrg[2] = [sgr](REAL &sw) {
+  fKrg[1] = [sgr](REAL &sw) {
     REAL sg = 1 - sw;
     REAL krg = 0;
     REAL dkrg = 0;
@@ -395,6 +395,15 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
 
       // PLEASE NOTE: The permeability and porosity functions can also be set here in a similar way
       // IMPLEMENT ME!
+    }
+    if (reservoir.find("p0") != reservoir.end()) {
+      auto p0 = reservoir["p0"];
+      TSFFunctionsGenerator::EP0FunctionType p0_functionType = p0["functionType"];
+      REAL constVal = p0["value"];
+      TSFFunctionsGenerator functionGen;
+      functionGen.SetP0FuncType(p0_functionType, constVal);
+      auto p0func = functionGen.CreateP0();
+      fTReservoirProperties.fP0Func = p0func;
     }
   }
 
