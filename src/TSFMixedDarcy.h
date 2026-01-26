@@ -11,6 +11,7 @@ class TSFMixedDarcy : public TPZMixedDarcyFlow {
   using TBase = TPZMixedDarcyFlow;
 
 public:
+  static REAL fTime;
   /**
    * @brief Default constructor
    */

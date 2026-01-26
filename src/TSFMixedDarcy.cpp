@@ -11,6 +11,8 @@
 static TPZLogger logger("pz.material.darcy");
 #endif
 
+REAL TSFMixedDarcy::fTime = 0.0;
+
 TSFMixedDarcy::TSFMixedDarcy() : TPZRegisterClassId(&TSFMixedDarcy::ClassId), TBase(), fIsAxisymmetric(false), fFourSpaces(false), fGravity(3, 1, 0.0) {}
 
 TSFMixedDarcy::TSFMixedDarcy(int id, int dim) : TPZRegisterClassId(&TSFMixedDarcy::ClassId), TBase(id, dim), fIsAxisymmetric(false), fFourSpaces(false), fGravity(3, 1, 0.0) {}
@@ -145,7 +147,10 @@ void TSFMixedDarcy::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
   if (bc.HasForcingFunctionBC()) {
     TPZManVector<STATE> res(3);
     TPZFNMatrix<9, STATE> gradu(3, 1);
+    datavec[0].x.resize(4);
+    datavec[0].x[3] = fTime;
     bc.ForcingFunctionBC()(datavec[0].x, res, gradu);
+    datavec[0].x.resize(3);
 
     const STATE perm = GetPermeability(datavec[0].x);
 
