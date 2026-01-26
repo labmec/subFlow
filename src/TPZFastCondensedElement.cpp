@@ -12,7 +12,7 @@
 static LoggerPtr logger(Logger::getLogger("pz.mesh.tpzcondensedcompel"));
 #endif
 
-bool TPZFastCondensedElement::fSkipLoadSolution = false;
+bool TPZFastCondensedElement::fSkipLoadSolution = true;
 
 TPZFastCondensedElement::TPZFastCondensedElement(TPZCompEl *ref, bool keepmatrix) : TPZCondensedCompElT(ref, keepmatrix) {
   IdentifyConnectandEquations();
