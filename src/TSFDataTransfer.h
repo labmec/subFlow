@@ -203,12 +203,15 @@ public:
   // transfer the solution from the darcy mesh fluxes to the interfaces
   void TransferDarcyMeshMultiplyingCoefficients();
 
+  // transfer the pressures from the darcy mesh to the transport mesh
   void TransferPressures();
 
-  // transfer the permeability multiplier from the transport mesh to the darcy mesh elements
-  void TransferLambdaCoefficients();
-  void TransferPermeabiliyTensor();
+  // transfer the information from the transport mesh to the darcy mesh
+  void TransferPropertiesToDarcy();
   void TransferSaturation();
+  void TransferLambda();
+  void TransferMixedDensity();
+  void TransferCompressibilityFactor();
 
   // verify the correspondence of the darcy elements and the algebraic cells
   void CheckDataTransferTransportToDarcy();

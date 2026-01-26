@@ -1324,7 +1324,7 @@ void TSFDataTransfer::TransferPressures() {
 }
 
 // transfer the permeability multiplier from the transport mesh to the mixed mesh elements
-void TSFDataTransfer::TransferLambdaCoefficients() {
+void TSFDataTransfer::TransferPropertiesToDarcy() {
 
   for (auto &meshit : fCorrespondence) {
     int64_t ncells = meshit.fAlgebraicTransportCellIndex.size();
@@ -1336,16 +1336,21 @@ void TSFDataTransfer::TransferLambdaCoefficients() {
     for (int icell = 0; icell < ncells; icell++) {
       TPZCompEl *cel = meshit.fDarcyCels[icell];
       TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
+#ifdef PZDEBUG
       if (!condensed) {
         TPZCondensedCompEl *condcompel = dynamic_cast<TPZCondensedCompEl *>(cel);
         if (condcompel) {
-          std::cout << "Element " << cel->Index() << " is not FastCondensed" << std::endl;
-          continue;
+          std::cout << "Element " << cel->Index() << " is a CondensedCompEl but not FastCondensed. PLEASE FIX" << std::endl;
+          DebugStop();
         } else {
           DebugStop();
         }
       }
+#endif
       int64_t cellindex = meshit.fAlgebraicTransportCellIndex[icell];
+      REAL sw = meshit.fTransport->fCellsData.fSaturation[cellindex];
+      condensed->SetSw(sw);
+
       REAL lambda = meshit.fTransport->fCellsData.fLambda[cellindex];
       condensed->SetLambda(lambda);
 
@@ -1354,22 +1359,21 @@ void TSFDataTransfer::TransferLambdaCoefficients() {
 
       REAL porosity = meshit.fTransport->fCellsData.fPorosity[cellindex];
       REAL dt = meshit.fTransport->fCellsData.fSimData->fTNumerics.fDt;
-      REAL sw = meshit.fTransport->fCellsData.fSaturation[cellindex];
-      REAL so = 1 - sw;
+      REAL sg = 1.0 - sw;
       REAL drhoWdp = meshit.fTransport->fCellsData.fDdensityWaterdp[cellindex];
-      REAL drhoOdp = meshit.fTransport->fCellsData.fDdensityGasdp[cellindex];
-      REAL compterm = -(porosity / dt) * ((sw * drhoWdp) + (so * drhoOdp)); // negative sign in accordance with the lyx
+      REAL drhoGdp = meshit.fTransport->fCellsData.fDdensityGasdp[cellindex];
+      REAL compterm = -(porosity / dt) * ((sw * drhoWdp) + (sg * drhoGdp)); // negative sign in accordance with the lyx
 
       REAL swlast = meshit.fTransport->fCellsData.fSaturationLastState[cellindex];
-      REAL solast = 1.0 - swlast;
+      REAL sglast = 1.0 - swlast;
       REAL plast = meshit.fTransport->fCellsData.fPressure[cellindex];
       REAL rhoW = meshit.fTransport->fCellsData.fDensityWater[cellindex];
-      REAL rhoO = meshit.fTransport->fCellsData.fDensityGas[cellindex];
+      REAL rhoG = meshit.fTransport->fCellsData.fDensityGas[cellindex];
       REAL rhoWlast = meshit.fTransport->fCellsData.fDensityWaterLastState[cellindex];
-      REAL rhoOlast = meshit.fTransport->fCellsData.fDensityGasLastState[cellindex];
-      REAL termrhscurrent = (sw * rhoW) + (so * rhoO);
-      REAL termrhslast = (swlast * rhoWlast) + (solast * rhoOlast);
-      REAL comptermrhs = (porosity / dt) * (termrhscurrent - termrhslast) + compterm * plast;
+      REAL rhoGlast = meshit.fTransport->fCellsData.fDensityGasLastState[cellindex];
+      REAL termrhscurrent = (sw * rhoW) + (sg * rhoG);
+      REAL termrhslast = (swlast * rhoWlast) + (sglast * rhoGlast);
+      REAL comptermrhs = (porosity / dt) * (termrhscurrent - termrhslast);
 
       condensed->SetCompressibiilityTerm(compterm, comptermrhs);
     }
@@ -1400,6 +1404,108 @@ void TSFDataTransfer::TransferSaturation() {
       int64_t cellindex = meshit.fAlgebraicTransportCellIndex[icell];
       REAL sw = meshit.fTransport->fCellsData.fSaturation[cellindex];
       condensed->SetSw(sw);
+    }
+  }
+}
+
+void TSFDataTransfer::TransferLambda() {
+
+  for (auto &meshit : fCorrespondence) {
+    int64_t ncells = meshit.fAlgebraicTransportCellIndex.size();
+#ifdef PZDEBUG
+    if (meshit.fTransport == 0) {
+      DebugStop();
+    }
+#endif
+    for (int icell = 0; icell < ncells; icell++) {
+      TPZCompEl *cel = meshit.fDarcyCels[icell];
+      TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
+      if (!condensed) {
+        TPZCondensedCompEl *condcompel = dynamic_cast<TPZCondensedCompEl *>(cel);
+        if (condcompel) {
+          std::cout << "Element " << cel->Index() << " is not FastCondensed" << std::endl;
+          continue;
+        } else {
+          DebugStop();
+        }
+      }
+      int64_t cellindex = meshit.fAlgebraicTransportCellIndex[icell];
+      REAL lambda = meshit.fTransport->fCellsData.fLambda[cellindex];
+      condensed->SetLambda(lambda);
+    }
+  }
+}
+
+void TSFDataTransfer::TransferMixedDensity() {
+
+  for (auto &meshit : fCorrespondence) {
+    int64_t ncells = meshit.fAlgebraicTransportCellIndex.size();
+#ifdef PZDEBUG
+    if (meshit.fTransport == 0) {
+      DebugStop();
+    }
+#endif
+    for (int icell = 0; icell < ncells; icell++) {
+      TPZCompEl *cel = meshit.fDarcyCels[icell];
+      TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
+      if (!condensed) {
+        TPZCondensedCompEl *condcompel = dynamic_cast<TPZCondensedCompEl *>(cel);
+        if (condcompel) {
+          std::cout << "Element " << cel->Index() << " is not FastCondensed" << std::endl;
+          continue;
+        } else {
+          DebugStop();
+        }
+      }
+      int64_t cellindex = meshit.fAlgebraicTransportCellIndex[icell];
+      REAL mixedDensity = meshit.fTransport->fCellsData.fMixedDensity[cellindex];
+      condensed->SetMixedDensity(mixedDensity);
+    }
+  }
+}
+
+void TSFDataTransfer::TransferCompressibilityFactor() {
+
+  for (auto &meshit : fCorrespondence) {
+    int64_t ncells = meshit.fAlgebraicTransportCellIndex.size();
+#ifdef PZDEBUG
+    if (meshit.fTransport == 0) {
+      DebugStop();
+    }
+#endif
+    for (int icell = 0; icell < ncells; icell++) {
+      TPZCompEl *cel = meshit.fDarcyCels[icell];
+      TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
+      if (!condensed) {
+        TPZCondensedCompEl *condcompel = dynamic_cast<TPZCondensedCompEl *>(cel);
+        if (condcompel) {
+          std::cout << "Element " << cel->Index() << " is not FastCondensed" << std::endl;
+          continue;
+        } else {
+          DebugStop();
+        }
+      }
+      int64_t cellindex = meshit.fAlgebraicTransportCellIndex[icell];
+      REAL sw = meshit.fTransport->fCellsData.fSaturation[cellindex];
+      REAL porosity = meshit.fTransport->fCellsData.fPorosity[cellindex];
+      REAL dt = meshit.fTransport->fCellsData.fSimData->fTNumerics.fDt;
+      REAL sg = 1.0 - sw;
+      REAL drhoWdp = meshit.fTransport->fCellsData.fDdensityWaterdp[cellindex];
+      REAL drhoGdp = meshit.fTransport->fCellsData.fDdensityGasdp[cellindex];
+      REAL compterm = -(porosity / dt) * ((sw * drhoWdp) + (sg * drhoGdp)); // negative sign in accordance with the lyx
+
+      REAL swlast = meshit.fTransport->fCellsData.fSaturationLastState[cellindex];
+      REAL sglast = 1.0 - swlast;
+      REAL plast = meshit.fTransport->fCellsData.fPressure[cellindex];
+      REAL rhoW = meshit.fTransport->fCellsData.fDensityWater[cellindex];
+      REAL rhoG = meshit.fTransport->fCellsData.fDensityGas[cellindex];
+      REAL rhoWlast = meshit.fTransport->fCellsData.fDensityWaterLastState[cellindex];
+      REAL rhoGlast = meshit.fTransport->fCellsData.fDensityGasLastState[cellindex];
+      REAL termrhscurrent = (sw * rhoW) + (sg * rhoG);
+      REAL termrhslast = (swlast * rhoWlast) + (sglast * rhoGlast);
+      REAL comptermrhs = (porosity / dt) * (termrhscurrent - termrhslast);
+
+      condensed->SetCompressibiilityTerm(compterm, comptermrhs);
     }
   }
 }
