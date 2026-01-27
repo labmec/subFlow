@@ -36,6 +36,11 @@ void TSFSFIAnalysis::Initialize() {
   fTransportAnalysis.Initialize();
   fDataTransfer.Initialize();
   fDataTransfer.InitializeAlgebraicTransport(fTransportAnalysis.fAlgebraicTransport);
+  fDarcyAnalysis.SetInitialSolution();
+  fTransportAnalysis.SetInitialSaturation();
+  TransferTransportToDarcy();
+  TransferDarcyToTransport();
+  UpdateLastStateVariables();
 }
 
 void TSFSFIAnalysis::PostProcessTimeStep(const int type, const int dim, int step) {
@@ -70,9 +75,6 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
   REAL time = 0.0;
   REAL nextPostProcessTime = postProcessTimes[0];
 
-  // Initializing Transport solution with initial saturation
-  fTransportAnalysis.SetInitialSaturation();
-  fDarcyAnalysis.SetInitialSolution();
   PostProcessTimeStep(fSimData->fTPostProcess.fProblemTypeInit, dim, 0);
 
   // Time stepping loop
@@ -148,7 +150,7 @@ void TSFSFIAnalysis::RunTimeStep(std::ostream &out) {
 }
 
 void TSFSFIAnalysis::TransferTransportToDarcy() {
-  fDataTransfer.TransferPropertiesToDarcy();
+  fDataTransfer.TransferSaturation();
 }
 
 void TSFSFIAnalysis::TransferDarcyToTransport() {
