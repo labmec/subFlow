@@ -10,6 +10,7 @@
 #include "TPZSSpStructMatrix.h"
 #include "TSFMixedDarcy.h"
 #include "TSFProblemData.h"
+#include "pzmultiphysicselement.h"
 #include "pzskylstrmatrix.h"
 #include "pzstepsolver.h"
 #include <stdio.h>

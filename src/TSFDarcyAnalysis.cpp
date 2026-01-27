@@ -60,9 +60,11 @@ void TSFDarcyAnalysis::RunTimeStep(std::ostream &out) {
 
   TPZFMatrix<STATE> sol = Solution();
   for (fKiteration = 0; fKiteration < matIter; fKiteration++) {
+    UpdateDensityAndCoefficients();
     Assemble();
     auto mat = MatrixSolver<STATE>().Matrix();
     mat->Print("stiff matrix ", std::cout, EMathematicaInput);
+    Rhs().Print("rhs vector ", std::cout, EMathematicaInput);
     // Check residual convergence
     if (fKiteration > 0) {
       TPZFMatrix<STATE> rhs = Rhs();
@@ -198,46 +200,94 @@ void TSFDarcyAnalysis::SetInitialBCValue(std::set<int> &neumannMatids) {
 void TSFDarcyAnalysis::SetInitialSolution() {
   if (!fSimData->fTReservoirProperties.fP0Func) return;
   fCompMesh->LoadReferences();
+  TPZFMatrix<STATE> &cmesh_sol = fCompMesh->Solution();
+  TPZMultiphysicsCompMesh *mp_cmesh = dynamic_cast<TPZMultiphysicsCompMesh *>(fCompMesh);
   TPZGeoMesh *gmesh = fCompMesh->Reference();
   const int dim = gmesh->Dimension();
 
-  TPZFMatrix<STATE> &cmesh_sol = fCompMesh->Solution();
-  for (auto el : gmesh->ElementVec()) {
-    if (el->Dimension() != dim) continue;
-    int nsides = el->NSides();
+  TPZCompMesh *pressure_cmesh = mp_cmesh->MeshVector()[1];
+  TPZFMatrix<STATE> &pressure_cmesh_sol = pressure_cmesh->Solution();
+  for (TPZCompEl *cel : pressure_cmesh->ElementVec()) { // Pressure mesh
+    TPZGeoEl *gel = cel->Reference();
+    if (gel->Dimension() != dim) continue;
+    int ncorner = gel->NCornerNodes();
+    TPZMultiphysicsElement *mp_el = dynamic_cast<TPZMultiphysicsElement *>(gel->Reference());
+#ifdef PZDEBUG
+    if (!mp_el) {
+      DebugStop();
+    }
+#endif
+    int cindex = mp_el->ElementVec()[0].Element()->NConnects(); // pressure connects come after flux connects
+    for (int i = 0; i < ncorner; i++) {
+      TPZManVector<REAL, 3> coord(3, 0.0);
+      gel->NodePtr(i)->GetCoordinates(coord);
+      REAL val = fSimData->fTReservoirProperties.fP0Func(coord);
+      TPZConnect &cloc = cel->Connect(i);
+      TPZConnect &c = mp_el->Connect(cindex + i);
+      int64_t seqloc = cloc.SequenceNumber(); //
+      int64_t seq = c.SequenceNumber();
+      int64_t firstEqLoc = pressure_cmesh->Block().Position(seqloc);
+      int64_t firstEq = fCompMesh->Block().Position(seq);
+      int blockSize = fCompMesh->Block().Size(seq);
+#ifdef PZDEBUG
+      int blockSizeloc = pressure_cmesh->Block().Size(seqloc);
+      if (blockSize != blockSizeloc) {
+        DebugStop();
+      }
+#endif
+      for (int64_t eqloc = firstEqLoc; eqloc < firstEqLoc + blockSizeloc; eqloc++) { // atomic pressure solution
+        pressure_cmesh_sol.PutVal(eqloc, 0, val);
+      }
+      for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++) { // multiphysics pressure solution
+        cmesh_sol.PutVal(eq, 0, val);
+      }
+    }
+  }
+
+  TPZCompMesh *avgpressure_cmesh = mp_cmesh->MeshVector()[3];
+  TPZFMatrix<STATE> &avgpressure_cmesh_sol = avgpressure_cmesh->Solution();
+  for (TPZCompEl *cel : avgpressure_cmesh->ElementVec()) { // Average pressure elements
+    TPZGeoEl *gel = cel->Reference();
+    if (gel->Dimension() != dim) continue;
+    int nsides = gel->NSides();
     TPZManVector<REAL, 3> center_local(dim, 0.0);
     TPZManVector<REAL, 3> center_global(3, 0.0);
-    el->CenterPoint(nsides - 1, center_local);
-    el->X(center_local, center_global);
-
-    TPZCompEl *compEl = el->Reference();
-
-    const int nConnects = compEl->NConnects();
-    const int avgPressureCon = nConnects - 1; // The last connect is the avg pressure connect
-
-    int64_t seq = compEl->Connect(avgPressureCon).SequenceNumber();
-    auto firstEq = fCompMesh->Block().Position(seq);
-
-    int64_t blockSize = fCompMesh->Block().Size(seq);
-
+    gel->CenterPoint(nsides - 1, center_local);
+    gel->X(center_local, center_global);
     REAL val = fSimData->fTReservoirProperties.fP0Func(center_global);
-
-    for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++) {
+    TPZMultiphysicsElement *mp_el = dynamic_cast<TPZMultiphysicsElement *>(gel->Reference());
+#ifdef PZDEBUG
+    if (!mp_el) {
+      DebugStop();
+    }
+#endif
+#ifdef PZDEBUG
+    if (cel->NConnects() != 1)
+      DebugStop();
+#endif
+    int cindex = mp_el->NConnects() - 1; // avg pressure connect is the last one
+    TPZConnect &cloc = cel->Connect(0);
+    TPZConnect &c = mp_el->Connect(cindex);
+    int64_t seqloc = cloc.SequenceNumber(); //
+    int64_t seq = c.SequenceNumber();
+    int64_t firstEqLoc = pressure_cmesh->Block().Position(seqloc);
+    int64_t firstEq = fCompMesh->Block().Position(seq);
+    int blockSize = fCompMesh->Block().Size(seq);
+#ifdef PZDEBUG
+    int blockSizeloc = pressure_cmesh->Block().Size(seqloc);
+    if (blockSize != blockSizeloc) {
+      DebugStop();
+    }
+#endif
+    for (int64_t eqloc = firstEqLoc; eqloc < firstEqLoc + blockSizeloc; eqloc++) { // atomic pressure solution
+      avgpressure_cmesh_sol.PutVal(eqloc, 0, val);
+    }
+    for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++) { // multiphysics pressure solution
       cmesh_sol.PutVal(eq, 0, val);
     }
   }
 
-  fCompMesh->TransferMultiphysicsSolution(); // Transfer solution to atomic meshes
-
-  for (auto el : fCompMesh->ElementVec()) { // Compute the internal solution
-    TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(el);
-    if (!condensed) continue;
-    condensed->LoadSolution();
-  }
-  TPZFastCondensedElement::fSkipLoadSolution = false;
-  // When the internal dofs are condensed, the analysis solution size is different from the cmesh solution size
-  // Analysis only holds the independent equations, while cmesh holds all equations
-  // The independent equations are stored first in the cmesh solution vector, so we just need to copy them to the analysis solution
+  // Transfering multiphysics solution to the analysis solution
   int cmesh_neq = fCompMesh->NEquations();
   TPZFMatrix<STATE> &sol = Solution();
   for (int i = 0; i < cmesh_neq; i++) {
@@ -348,4 +398,109 @@ void TSFDarcyAnalysis::SetLastStatePressure() {
 void TSFDarcyAnalysis::SetTime(REAL time) {
   this->fTime = time;
   TSFMixedDarcy::fTime = time;
+}
+
+void TSFDarcyAnalysis::UpdateDensityAndCoefficients() {
+  TPZMultiphysicsCompMesh *cmesh = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
+  if (!cmesh)
+    DebugStop();
+
+  auto fWaterDensityF = fSimData->fTFluidProperties.fWaterDensityFunc;
+  auto fGasDensityF = fSimData->fTFluidProperties.fGasDensityFunc;
+  int64_t nels = cmesh->NElements();
+  for (int iel = 0; iel < nels; iel++) {
+    TPZCompEl *cel = cmesh->Element(iel);
+    TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
+    if (!condensed) continue;
+
+    // Getting the avg pressure current solution
+    TPZCompEl *compel = condensed->ReferenceCompEl();
+    TPZGeoEl *gel = compel->Reference();
+    int dim = compel->Dimension();
+    TPZVec<REAL> qsi(dim, 0.0);
+    TPZVec<STATE> sol(dim, 0.0);
+    int pressureindex = 2;
+    compel->Solution(qsi, pressureindex, sol);
+    REAL pressure = sol[0];
+
+    REAL vol = gel->Volume();
+    REAL rhowref = fSimData->fTFluidProperties.fWaterDensityRef;
+    REAL rhogref = fSimData->fTFluidProperties.fGasDensityRef;
+
+    // Update the density based on the pressure if functions are provided
+    std::tuple<REAL, REAL> rhoWvalderiv, rhoGvalderiv;
+    if (fWaterDensityF && fGasDensityF) {
+      rhoWvalderiv = fWaterDensityF(pressure);
+      rhoGvalderiv = fGasDensityF(pressure);
+#ifdef PZDEBUG
+      if (std::get<0>(rhoWvalderiv) < 0.0 || std::get<0>(rhoGvalderiv) < 0.0)
+        DebugStop();
+#endif
+    } else {
+      rhoWvalderiv = std::make_tuple(rhowref, 0.0);
+      rhoGvalderiv = std::make_tuple(rhogref, 0.0);
+    }
+
+    REAL rhow = std::get<0>(rhoWvalderiv);
+    REAL drhow = std::get<1>(rhoWvalderiv);
+    REAL rhog = std::get<0>(rhoGvalderiv);
+    REAL drhog = std::get<1>(rhoGvalderiv);
+    REAL bw = rhowref / rhow;
+    REAL bg = rhogref / rhog;
+    REAL dbwinv = drhow / rhowref;
+    REAL dbginv = drhog / rhogref;
+
+    // With the new density we update the coefficients
+    int krModel = fSimData->fTPetroPhysics.fKrModel;
+    auto lambdaWfunc = fSimData->fTPetroPhysics.fLambdaw[krModel];
+    auto lambdaGfunc = fSimData->fTPetroPhysics.fLambdag[krModel];
+    auto lambdaTotalfunc = fSimData->fTPetroPhysics.fLambdaTotal[krModel];
+    auto fwfunc = fSimData->fTPetroPhysics.fFw[krModel];
+    auto fgfunc = fSimData->fTPetroPhysics.fFg[krModel];
+
+    REAL sw = condensed->GetSw();
+    auto fwfvalderiv = fwfunc(sw, bw, bg);
+    auto fgvalderiv = fgfunc(sw, bw, bg);
+    auto lambdaWvalderiv = lambdaWfunc(sw, bw);
+    auto lambdaGvalderiv = lambdaGfunc(sw, bg);
+    auto lambdaTotalvalderiv = lambdaTotalfunc(sw, bw, bg);
+
+    // Update the mixed density
+    REAL fw = std::get<0>(fwfvalderiv);
+    REAL fg = std::get<0>(fgvalderiv);
+
+    REAL mixedDensity = rhow * fw + rhog * fg;
+    condensed->SetMixedDensity(mixedDensity);
+
+    // Update the coefficients
+    REAL lambda = std::get<0>(lambdaTotalvalderiv);
+    condensed->SetLambda(lambda);
+
+    if (fWaterDensityF && fGasDensityF) {
+      int matid = compel->Material()->Id();
+      REAL porosity = 0.0;
+      for (auto &domain : fSimData->fTReservoirProperties.fPorosityAndPermeability) {
+        if (std::get<0>(domain) == matid) {
+          porosity = std::get<1>(domain).first;
+          break;
+        }
+      }
+      REAL dt = fSimData->fTNumerics.fDt;
+      REAL sg = 1.0 - sw;
+      REAL swlast = condensed->GetSwLast();
+      REAL sglast = 1.0 - swlast;
+      REAL compterm = -vol * (porosity / dt) * (sw * dbwinv + sg * dbginv);
+
+      REAL pressurelast = condensed->GetPressureLastState();
+      REAL rhoWlast = std::get<0>(fWaterDensityF(pressurelast));
+      REAL rhoGlast = std::get<0>(fGasDensityF(pressurelast));
+      REAL bwlast = rhowref / rhoWlast;
+      REAL bglast = rhogref / rhoGlast;
+      REAL termrhscurrent = (sw / bw) + (sg / bg);
+      REAL termrhslast = (swlast / bwlast) + (sglast / bglast);
+      REAL comptermrhs = vol * (porosity / dt) * (termrhscurrent - termrhslast);
+
+      condensed->SetCompressibiilityTerm(compterm, comptermrhs);
+    }
+  }
 }
