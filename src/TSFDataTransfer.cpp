@@ -1189,12 +1189,17 @@ void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transp
     }
     if (!fountmat) DebugStop();
 
-    // Setting initial saturation, porosity and kappa using functions if provided
+    // Setting initial saturation, pressure, porosity and kappa using functions if provided
     REAL s0_value = 0.0;
     auto s0_func = transport.fCellsData.fSimData->fTReservoirProperties.fS0Func;
     if (s0_func) s0_value = s0_func(coord);
     transport.fCellsData.fSaturation[i] = s0_value;
     transport.fCellsData.fSaturationLastState[i] = s0_value;
+
+    REAL p0_value = 0.0;
+    auto p0_func = transport.fCellsData.fSimData->fTReservoirProperties.fP0Func;
+    if (p0_func) p0_value = p0_func(coord);
+    transport.fCellsData.fPressure[i] = p0_value;
 
     auto kappa_func = transport.fCellsData.fSimData->fTReservoirProperties.fKappaFunc;
     if (kappa_func) {
