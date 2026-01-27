@@ -145,61 +145,61 @@ void TSFProblemData::TPetroPhysics::CreateQuadraticKrModel() {
 }
 
 void TSFProblemData::TPetroPhysics::UpdateLambdasAndFracFlows(int krModel) {
-  fLambdaw[krModel] = [this, krModel](REAL &sw, REAL &rhow) {
+  fLambdaw[krModel] = [this, krModel](REAL &sw, REAL &bw) {
     std::tuple<REAL, REAL> krwvalderiv = fKrw[krModel](sw);
     auto krw = std::get<0>(krwvalderiv);
     REAL dkrw = std::get<1>(krwvalderiv);
-    REAL lambdaw = krw / fWaterViscosity;
-    REAL dlambdadsw = dkrw / fWaterViscosity;
-    std::tuple<REAL, REAL> valderiv(lambdaw, dlambdadsw);
+    REAL lambdaw = krw / (fWaterViscosity * bw);
+    REAL dlambdawdsw = dkrw / (fWaterViscosity * bw);
+    std::tuple<REAL, REAL> valderiv(lambdaw, dlambdawdsw);
     return valderiv;
   };
 
-  fLambdag[krModel] = [this, krModel](REAL &sw, REAL &rhog) {
+  fLambdag[krModel] = [this, krModel](REAL &sw, REAL &bg) {
     std::tuple<REAL, REAL> krwvalderiv = fKrg[krModel](sw);
-    auto kro = std::get<0>(krwvalderiv);
-    REAL dkro = std::get<1>(krwvalderiv);
-    REAL lambdao = kro / fGasViscosity;
-    REAL dlambdadso = dkro / fGasViscosity;
-    std::tuple<REAL, REAL> valderiv(lambdao, dlambdadso);
+    auto krg = std::get<0>(krwvalderiv);
+    REAL dkrg = std::get<1>(krwvalderiv);
+    REAL lambdag = krg / (fGasViscosity * bg);
+    REAL dlambdagdsw = dkrg / (fGasViscosity * bg);
+    std::tuple<REAL, REAL> valderiv(lambdag, dlambdagdsw);
     return valderiv;
   };
 
-  fLambdaTotal[krModel] = [this, krModel](REAL &sw, REAL &rhow, REAL &rhog) {
-    std::tuple<REAL, REAL> lambdaWvalderiv = fLambdaw[krModel](sw, rhow);
-    std::tuple<REAL, REAL> lambdaOvalderiv = fLambdag[krModel](sw, rhog);
-    REAL lw = std::get<0>(lambdaWvalderiv);
-    REAL dlwdsw = std::get<1>(lambdaWvalderiv);
-    REAL lg = std::get<0>(lambdaOvalderiv);
-    REAL dlgdsw = std::get<1>(lambdaOvalderiv);
-    REAL lambdaTotal = lw + lg;
-    REAL dlambdaTotaldsw = dlwdsw + dlgdsw;
+  fLambdaTotal[krModel] = [this, krModel](REAL &sw, REAL &bw, REAL &bg) {
+    std::tuple<REAL, REAL> lambdaWvalderiv = fLambdaw[krModel](sw, bw);
+    std::tuple<REAL, REAL> lambdaGvalderiv = fLambdag[krModel](sw, bg);
+    REAL lambdaw = std::get<0>(lambdaWvalderiv);
+    REAL dlambdawdsw = std::get<1>(lambdaWvalderiv);
+    REAL lambdag = std::get<0>(lambdaGvalderiv);
+    REAL dlambdagdsw = std::get<1>(lambdaGvalderiv);
+    REAL lambdaTotal = lambdaw + lambdag;
+    REAL dlambdaTotaldsw = dlambdawdsw + dlambdagdsw;
     std::tuple<REAL, REAL> valderiv(lambdaTotal, dlambdaTotaldsw);
     return valderiv;
   };
 
-  fFw[krModel] = [this, krModel](REAL &sw, REAL &rhow, REAL &rhog) {
-    std::tuple<REAL, REAL> lambdaWvalderiv = fLambdaw[krModel](sw, rhow);
-    std::tuple<REAL, REAL> lambdaTotalvalderiv = fLambdaTotal[krModel](sw, rhow, rhog);
-    REAL lw = std::get<0>(lambdaWvalderiv);
-    REAL dlwdsw = std::get<1>(lambdaWvalderiv);
-    REAL ltotal = std::get<0>(lambdaTotalvalderiv);
-    REAL dltotaldsw = std::get<1>(lambdaTotalvalderiv);
-    REAL fracflow = lw / ltotal;
-    REAL dfracflowdsw = (dlwdsw / ltotal) - ((lw * dltotaldsw) / (ltotal * ltotal));
+  fFw[krModel] = [this, krModel](REAL &sw, REAL &bw, REAL &bg) {
+    std::tuple<REAL, REAL> lambdaWvalderiv = fLambdaw[krModel](sw, bw);
+    std::tuple<REAL, REAL> lambdaTotalvalderiv = fLambdaTotal[krModel](sw, bw, bg);
+    REAL lambdaw = std::get<0>(lambdaWvalderiv);
+    REAL dlambdawdsw = std::get<1>(lambdaWvalderiv);
+    REAL lambdaTotal = std::get<0>(lambdaTotalvalderiv);
+    REAL dlambdaTotaldsw = std::get<1>(lambdaTotalvalderiv);
+    REAL fracflow = lambdaw / lambdaTotal;
+    REAL dfracflowdsw = (dlambdawdsw / lambdaTotal) - ((lambdaw * dlambdaTotaldsw) / (lambdaTotal * lambdaTotal));
     std::tuple<REAL, REAL> valderiv(fracflow, dfracflowdsw);
     return valderiv;
   };
 
-  fFg[krModel] = [this, krModel](REAL &sw, REAL &rhow, REAL &rhog) {
-    std::tuple<REAL, REAL> lambdaOvalderiv = fLambdag[krModel](sw, rhog);
-    std::tuple<REAL, REAL> lambdaTotalvalderiv = fLambdaTotal[krModel](sw, rhow, rhog);
-    REAL lg = std::get<0>(lambdaOvalderiv);
-    REAL dlgdsw = std::get<1>(lambdaOvalderiv);
-    REAL ltotal = std::get<0>(lambdaTotalvalderiv);
-    REAL dltotaldsw = std::get<1>(lambdaTotalvalderiv);
-    REAL fracflow = lg / ltotal;
-    REAL dfracflowdsw = (dlgdsw / ltotal) - ((lg * dltotaldsw) / (ltotal * ltotal));
+  fFg[krModel] = [this, krModel](REAL &sw, REAL &bw, REAL &bg) {
+    std::tuple<REAL, REAL> lambdaGvalderiv = fLambdag[krModel](sw, bg);
+    std::tuple<REAL, REAL> lambdaTotalvalderiv = fLambdaTotal[krModel](sw, bw, bg);
+    REAL lambdag = std::get<0>(lambdaGvalderiv);
+    REAL dlambdagdsw = std::get<1>(lambdaGvalderiv);
+    REAL lambdaTotal = std::get<0>(lambdaTotalvalderiv);
+    REAL dlambdaTotaldsw = std::get<1>(lambdaTotalvalderiv);
+    REAL fracflow = lambdag / lambdaTotal;
+    REAL dfracflowdsw = (dlambdagdsw / lambdaTotal) - ((lambdag * dlambdaTotaldsw) / (lambdaTotal * lambdaTotal));
     std::tuple<REAL, REAL> valderiv(fracflow, dfracflowdsw);
     return valderiv;
   };
