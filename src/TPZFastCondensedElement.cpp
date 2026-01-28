@@ -29,7 +29,6 @@ void TPZFastCondensedElement::CalcStiff(TPZElementMatrixT<STATE> &ek, TPZElement
     TPZCondensedCompElT::CalcStiff(fEK, fEF);
     ComputeBodyforceRefValues();
     ComputeConstantPressureValues();
-    this->fMatrixComputed = true;
   }
   ek = fEK;
   ef = fEF;
@@ -58,7 +57,14 @@ void TPZFastCondensedElement::CalcStiff(TPZElementMatrixT<STATE> &ek, TPZElement
   //    void MultAdd(const TPZFMatrix<TVar> &x,const TPZFMatrix<TVar> &y, TPZFMatrix<TVar> &z,
   //                 const TVar alpha=1.,const TVar beta = 0.,const int opt = 0) const override;
   STATE alpha = -1.;
-  ek.fMat.MultAdd(solvec, ef.fMat, ef.fMat, alpha, 1);
+
+  if (fMatrixComputed) {
+    // If an initial solution is given, this should not be called at the first time step,
+    // since K * solvec is already included in ef
+    ek.fMat.MultAdd(solvec, ef.fMat, ef.fMat, alpha, 1);
+    return;
+  }
+  fMatrixComputed = true; // after the first call of CalcStiff, we set fMatrixComputed to true here
 }
 
 // extract the solution vector of the condensed element

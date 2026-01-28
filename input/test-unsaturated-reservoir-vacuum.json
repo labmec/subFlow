@@ -15,7 +15,7 @@
             "name": "bottom",
             "matid": 2,
             "type": 0, // imposed pressure
-            "value": 0.0,
+            "value": 100.0e3,
             "functionID": 0,
             "ExternalSaturation": 1.0,
             "SaturationFunctionID": 0
@@ -24,7 +24,7 @@
             "name": "right",
             "matid": 3,
             "type": 0, // imposed flux
-            "value": 0.0,
+            "value": 100.0e3,
             "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
@@ -33,7 +33,7 @@
             "name": "top",
             "matid": 4,
             "type": 0, // imposed pressure
-            "value": 0.0,
+            "value": 100.0e3,
             "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
@@ -42,7 +42,7 @@
             "name": "left",
             "matid": 5,
             "type": 0, // imposed flux
-            "value": 0.0,
+            "value": 100.0e3,
             "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
