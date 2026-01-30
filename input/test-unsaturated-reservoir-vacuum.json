@@ -1,21 +1,21 @@
 {
     "UseGMsh": true,
-    "MshFile": "test-transport.msh",
+    "MshFile": "test-unsaturated-reservoir-vacuum.msh",
     "Dimension": 2,
     "Domains": [
         {
             "name": "dom",
             "matid": 1,
-            "K": 1.0,
-            "phi": 1.0
+            "K": 4.93e-10,
+            "phi": 0.3
         }
     ],
     "Boundary": [
         {
             "name": "bottom",
             "matid": 2,
-            "type": 0, // imposed pressure
-            "value": 100.0e3,
+            "type": 1, // imposed flux
+            "value": 0.0,
             "functionID": 0,
             "ExternalSaturation": 1.0,
             "SaturationFunctionID": 0
@@ -23,8 +23,8 @@
         {
             "name": "right",
             "matid": 3,
-            "type": 0, // imposed flux
-            "value": 100.0e3,
+            "type": 1, // imposed flux
+            "value": 0.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
@@ -34,15 +34,15 @@
             "matid": 4,
             "type": 0, // imposed pressure
             "value": 100.0e3,
-            "functionID": 0,
+            "functionID": 2,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
         },
         {
             "name": "left",
             "matid": 5,
-            "type": 0, // imposed flux
-            "value": 100.0e3,
+            "type": 1, // imposed flux
+            "value": 0.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
@@ -52,7 +52,7 @@
         "AnalysisType": 2, //0: Darcy, 1: Transport, 2: Coupled
         "FluxOrder": 1,
         "DeltaT": 0.01,
-        "NSteps": 1,
+        "NSteps": 400,
         "Gravity": [
             0.0,
             0.0,
@@ -74,10 +74,10 @@
     "FluidProperties": {
         "WaterDensity": 1000.0,
         "WaterViscosity": 1.0e-3,
-        "WaterCompressibility": 0,
-        "GasDensity": 1.0,
-        "GasViscosity": 1.0,
-        "GasCompressibility": 0,
+        "WaterCompressibility": 0.0,
+        "GasDensity": 1.25,
+        "GasViscosity": 1.8e-5,
+        "GasCompressibility": 1.0e-5,
         "DensityModel": 0, // 0: Linear, 1: Exponential
         "ReferencePressure": 100.0e3
     },
