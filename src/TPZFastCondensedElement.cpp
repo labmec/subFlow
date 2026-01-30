@@ -25,15 +25,15 @@ TPZFastCondensedElement::TPZFastCondensedElement(TPZCompEl *ref, bool keepmatrix
  */
 void TPZFastCondensedElement::CalcStiff(TPZElementMatrixT<STATE> &ek, TPZElementMatrixT<STATE> &ef) {
   if (this->fMatrixComputed == false) {
-    // TPZMaterial *mat = Material();
     TPZCondensedCompElT::CalcStiff(fEK, fEF);
     ComputeBodyforceRefValues();
     ComputeConstantPressureValues();
+    fMatrixComputed = true;
   }
   ek = fEK;
   ef = fEF;
   int nrows = ek.fMat.Rows();
-  int ncols = ek.fMat.Rows();
+  int ncols = ek.fMat.Cols();
   REAL Glambda = fMixedDensity;
 
   ek.fMat *= (1. / fLambda);
@@ -44,11 +44,14 @@ void TPZFastCondensedElement::CalcStiff(TPZElementMatrixT<STATE> &ek, TPZElement
     ek.fMat(irow, ncols - 1) *= fLambda;
   }
 
-  ek.fMat(nrows - 1, ncols - 1) = fCompressibilityMatrixTerm; // this term is initially null as only the incompressible part is computed in the Contribute method
-
   TPZFNMatrix<30, STATE> solvec(fEK.fMat.Rows(), 1, 0.);
   GetSolutionVector(solvec);
 
+  // When an initial solution is given, the residual contains not only the gravitational forces, but also K*sol0.
+  // We cannot multiply it by Glambda.
+  // The ideal fix would be adding a flag to the material refered to the use or not of FastCondensedCompel. If so, we only compute the body forces in Contribute(),
+  // and the K*sol0 term is computed here during the MultAdd call. In this case, the MultAdd call should be called always, not only when fMatrixComputed is true.
+  // PLEASE FIX ME
   ef.fMat *= 1.0 * Glambda;
   ef.fMat(nrows - 1) += fCompressibiilityRhsTerm; // should use the += operator since ef already has the flux divergence computed in the Contribute method
 
@@ -58,13 +61,10 @@ void TPZFastCondensedElement::CalcStiff(TPZElementMatrixT<STATE> &ek, TPZElement
   //                 const TVar alpha=1.,const TVar beta = 0.,const int opt = 0) const override;
   STATE alpha = -1.;
 
-  if (fMatrixComputed) {
-    // If an initial solution is given, this should not be called at the first time step,
-    // since K * solvec is already included in ef
-    ek.fMat.MultAdd(solvec, ef.fMat, ef.fMat, alpha, 1);
-    return;
-  }
-  fMatrixComputed = true; // after the first call of CalcStiff, we set fMatrixComputed to true here
+  // If an initial solution is given, this should not be called at the first time step,
+  // since K * solvec is already computed in ef during Contribute()
+  ek.fMat.MultAdd(solvec, ef.fMat, ef.fMat, alpha, 1);
+  ek.fMat(nrows - 1, ncols - 1) = fCompressibilityMatrixTerm; // this term is initially null as only the incompressible part is computed in the Contribute method
 }
 
 // extract the solution vector of the condensed element

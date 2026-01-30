@@ -42,6 +42,7 @@ void TSFMixedDarcy::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec, R
   nphiU = datavec[0].fDeformedDirections.Cols();
   nphiP = phiP.Rows();
 
+#ifndef USE_FAST_CONDENSED_COMPEL
   TPZVec<STATE> Usol = datavec[0].sol[0];
   TPZFMatrix<STATE> UsolMat(Usol.size(), 1);
   for (int i = 0; i < Usol.size(); ++i) {
@@ -49,6 +50,7 @@ void TSFMixedDarcy::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec, R
   }
   REAL psol = datavec[1].sol[0][0];
   REAL divUsol = datavec[0].divsol[0][0];
+#endif
 
   REAL axiFactor = 1.0;
   if (fIsAxisymmetric) // Axisymmetric: assuming radius is aligned with the x axis
@@ -64,15 +66,17 @@ void TSFMixedDarcy::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec, R
   ek.AddContribution(nphiU, 0, phiP, 0, divU, 1, -weight); // B^T
   ek.AddContribution(0, nphiU, divU, 0, phiP, 1, -weight); // B
 
+  ef.AddContribution(0, 0, phiU, 1, fGravity, 0, weight);
+#ifndef USE_FAST_CONDENSED_COMPEL
   // Residual vector constitutive equation (negative)
   ef.AddContribution(0, 0, phiU, 1, UsolMat, 0, -factor);
   factor = psol * weight;
   ef.AddContribution(0, 0, divU, 0, Aux, 1, factor);
-  ef.AddContribution(0, 0, phiU, 1, fGravity, 0, weight);
 
   // Residual vector conservation equation (negative)
   factor = divUsol * weight;
   ef.AddContribution(nphiU, 0, phiP, 0, Aux, 0, factor);
+#endif
 
   if (fFourSpaces && datavec.size() < 4) DebugStop();
 
@@ -108,15 +112,19 @@ void TSFMixedDarcy::ContributeFourSpaces(const TPZVec<TPZMaterialDataT<STATE>> &
     STATE p_avg = datavec[p_avgb].sol[0][0];
 
     for (int ip = 0; ip < nPhiP; ip++) {
+#ifndef USE_FAST_CONDENSED_COMPEL
       ef(nPhiU + ip, 0) += weight * g_avg * phiP(ip, 0);
+#endif
       ek(nPhiU + ip, nPhiU + nPhiP + 2 * iavg) += weight * phiP(ip, 0);
       ek(nPhiU + nPhiP + 2 * iavg, nPhiU + ip) += weight * phiP(ip, 0);
     }
-
+#ifndef USE_FAST_CONDENSED_COMPEL
     ef(nPhiU + nPhiP + 1 + 2 * iavg, 0) += -weight * g_avg;
+#endif
     ek(nPhiU + nPhiP + 1 + 2 * iavg, nPhiU + nPhiP + 2 * iavg) += -weight;
-
+#ifndef USE_FAST_CONDENSED_COMPEL
     ef(nPhiU + nPhiP + 2 * iavg, 0) += weight * (p - p_avg);
+#endif
     ek(nPhiU + nPhiP + 2 * iavg, nPhiU + nPhiP + 1 + 2 * iavg) += -weight;
   }
 }
@@ -184,7 +192,7 @@ void TSFMixedDarcy::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
     }
     break;
 
-  case 1: // Neumann condition
+  case 1: // Neumann condition, applied via EquationFilter
     // for (int i = 0; i < nPhiU; i++) {
     //   ef(i, 0) += bigNumber * (v2 - Usol[0]) * phiU(i, 0) * weight;
     //   for (int j = 0; j < nPhiU; j++) {

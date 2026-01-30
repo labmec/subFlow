@@ -12,6 +12,12 @@ if (APPLE)
   add_definitions(-DMACOSX)
 endif()
 
+# Option to use FastCondensedCompel
+option(USE_FAST_CONDENSED_COMPEL "Use FastCondensedCompel" ON)
+if(USE_FAST_CONDENSED_COMPEL)
+  add_definitions(-DUSE_FAST_CONDENSED_COMPEL)
+endif()
+
 # Making pz "seeable" in Xcode
 # ----------------
 file(GLOB_RECURSE PZ_SRC
