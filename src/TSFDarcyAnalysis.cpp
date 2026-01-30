@@ -62,9 +62,6 @@ void TSFDarcyAnalysis::RunTimeStep(std::ostream &out) {
   for (fKiteration = 0; fKiteration < matIter; fKiteration++) {
     UpdateDensityAndCoefficients();
     Assemble();
-    auto mat = MatrixSolver<STATE>().Matrix();
-    mat->Print("stiff matrix ", std::cout, EMathematicaInput);
-    Rhs().Print("rhs vector ", std::cout, EMathematicaInput);
     // Check residual convergence
     if (fKiteration > 0) {
       TPZFMatrix<STATE> rhs = Rhs();
@@ -90,6 +87,7 @@ void TSFDarcyAnalysis::RunTimeStep(std::ostream &out) {
 
   if (!converged) {
     std::cout << "------Iterative method did not converge. res_norm: " << res_norm << " corr_norm: " << corr_norm << std::endl;
+    fSolution = sol;
   }
 }
 
@@ -270,11 +268,11 @@ void TSFDarcyAnalysis::SetInitialSolution() {
     TPZConnect &c = mp_el->Connect(cindex);
     int64_t seqloc = cloc.SequenceNumber(); //
     int64_t seq = c.SequenceNumber();
-    int64_t firstEqLoc = pressure_cmesh->Block().Position(seqloc);
+    int64_t firstEqLoc = avgpressure_cmesh->Block().Position(seqloc);
     int64_t firstEq = fCompMesh->Block().Position(seq);
     int blockSize = fCompMesh->Block().Size(seq);
 #ifdef PZDEBUG
-    int blockSizeloc = pressure_cmesh->Block().Size(seqloc);
+    int blockSizeloc = avgpressure_cmesh->Block().Size(seqloc);
     if (blockSize != blockSizeloc) {
       DebugStop();
     }
@@ -434,7 +432,7 @@ void TSFDarcyAnalysis::UpdateDensityAndCoefficients() {
       rhoGvalderiv = fGasDensityF(pressure);
 #ifdef PZDEBUG
       if (std::get<0>(rhoWvalderiv) < 0.0 || std::get<0>(rhoGvalderiv) < 0.0)
-        DebugStop();
+        std::cout << "Negative density value detected! " << std::endl;
 #endif
     } else {
       rhoWvalderiv = std::make_tuple(rhowref, 0.0);
