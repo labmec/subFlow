@@ -20,7 +20,7 @@ void TSFApproxCreator::ConfigureDarcySpace() {
   if (fSimData->fTNumerics.fFourApproxSpaces) {
     TPZHDivApproxCreator::IsRigidBodySpaces() = true;
   }
-  TPZHDivApproxCreator::SetShouldCondense(false); //the static condensation will be done inside this class, using TPZFastCondensedElements
+  TPZHDivApproxCreator::SetShouldCondense(false); // the static condensation will be done inside this class, using TPZFastCondensedElements
 }
 
 void TSFApproxCreator::AddDarcyMaterials() {
@@ -65,7 +65,7 @@ TPZMultiphysicsCompMesh *TSFApproxCreator::CreateApproximationSpace() {
   TPZHDivApproxCreator::CreateAtomicMeshes(meshvec, lagmultilevel); // This method increments the lagmultilevel
   TPZMultiphysicsCompMesh *cmesh = nullptr;
   TPZHDivApproxCreator::CreateMultiPhysicsMesh(meshvec, lagmultilevel, cmesh);
-  CondenseElements(cmesh, lagmultilevel-1, true);
+  CondenseElements(cmesh, lagmultilevel - 1, true);
 
   return cmesh;
 }
@@ -214,6 +214,16 @@ void TSFApproxCreator::CreateInterfaceElements() {
       TPZCompElSide compElSide = geoElSide.Reference();
       TPZGeoElSide neighbour = geoElSide.Neighbour();
 
+      TPZStack<TPZGeoElSide> neighbourSet;
+      neighbour.AllNeighbours(neighbourSet);
+      bool hasInterface = false;
+      for (auto const &neigh : neighbourSet) {
+        if (neigh.Element()->MaterialId() == interfaceMatId) {
+          hasInterface = true;
+          break;
+        }
+      }
+      if (hasInterface) continue;
       if (neighbour == geoElSide) continue;
       if (neighbour.Element()->HasSubElement()) continue;
 
