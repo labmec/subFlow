@@ -43,8 +43,8 @@ void TSFDarcyAnalysis::Initialize() {
   step.SetDirect(ELDLt);
   SetSolver(step);
 
-  std::cout << "Number of equations: " << fCompMesh->NEquations() << std::endl;
-  std::cout << "Number of elements: " << fCompMesh->NElements() << std::endl;
+  std::cout << "Number of Darcy equations: " << fCompMesh->NEquations() << std::endl;
+  std::cout << "Number of Darcy elements: " << fCompMesh->NElements() << std::endl;
 }
 
 void TSFDarcyAnalysis::RunTimeStep(std::ostream &out) {
@@ -64,7 +64,7 @@ void TSFDarcyAnalysis::RunTimeStep(std::ostream &out) {
     Assemble();
     // Check residual convergence
     if (fKiteration > 0) {
-      TPZFMatrix<STATE> rhs = Rhs();
+      TPZFMatrix<STATE> &rhs = Rhs();
       res_norm = Norm(rhs);
       out << "------Newton iteration: " << fKiteration << std::endl;
       out << "---------Residual norm: " << res_norm << std::endl;

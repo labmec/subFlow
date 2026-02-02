@@ -58,10 +58,12 @@ public:
     std::vector<REAL> fDdensityWaterdp;
     std::vector<REAL> fDensityWaterLastState;
     std::vector<REAL> fVolumeFactorWater;
+    std::vector<REAL> fVolumeFactorWaterLastState;
     std::vector<REAL> fDensityGas;
     std::vector<REAL> fDdensityGasdp;
     std::vector<REAL> fDensityGasLastState;
     std::vector<REAL> fVolumeFactorGas;
+    std::vector<REAL> fVolumeFactorGasLastState;
     std::vector<REAL> fMixedDensity;
     std::vector<REAL> fLambda;
     std::vector<REAL> fDlambdaWaterdsw;
@@ -82,12 +84,10 @@ public:
     // [0] = water, [1] = gas
     std::vector<REAL> fCompressibility;
     std::vector<REAL> fViscosity;
-    std::vector<REAL> fReferencePressures;
     std::vector<REAL> fReferenceDensity;
 
-    TCellData() : fSimData(0), fEqNumber(0), fVolume(0), fVolumeFactorWater(0), fMatId(0), fGeoIndex(0), fSaturation(0), fPressure(0), fSaturationLastState(0), fDensityGas(0), fDdensityGasdp(0), fDensityGasLastState(0), fDensityWater(0), fDdensityWaterdp(0), fDensityWaterLastState(0), fMixedDensity(0), fLambda(0), fDlambdaWaterdsw(0), fDlambdaGasdsw(0), fPorosity(0), fKappa(0), fWaterfractionalflow(0), fDerivativeWfractionalflow(0), fGasfractionalflow(0), fDerivativeGfractionalflow(0), fCenterCoordinate(0),
-                  fCompressibility(0), fViscosity(0), fReferencePressures(0),
-                  fReferenceDensity(0) {
+    TCellData() : fSimData(0), fEqNumber(0), fVolume(0), fVolumeFactorWater(0), fVolumeFactorWaterLastState(0), fVolumeFactorGas(0), fVolumeFactorGasLastState(0), fMatId(0), fGeoIndex(0), fSaturation(0), fPressure(0), fSaturationLastState(0), fDensityGas(0), fDdensityGasdp(0), fDensityGasLastState(0), fDensityWater(0), fDdensityWaterdp(0), fDensityWaterLastState(0), fMixedDensity(0), fLambda(0), fDlambdaWaterdsw(0), fDlambdaGasdsw(0), fPorosity(0), fKappa(0), fWaterfractionalflow(0), fDerivativeWfractionalflow(0), fGasfractionalflow(0), fDerivativeGfractionalflow(0), fCenterCoordinate(0),
+                  fCompressibility(0), fViscosity(0), fReferenceDensity(0) {
     }
     TCellData(const TCellData &copy) = default;
     TCellData &operator=(const TCellData &copy) = default;
@@ -96,6 +96,8 @@ public:
       fVolume.resize(ncells);
       fVolumeFactorWater.resize(ncells);
       fVolumeFactorGas.resize(ncells);
+      fVolumeFactorWaterLastState.resize(ncells);
+      fVolumeFactorGasLastState.resize(ncells);
       fMatId.resize(ncells);
       fGeoIndex.resize(ncells);
       fEqNumber.resize(ncells);
@@ -122,12 +124,14 @@ public:
       fCenterCoordinate.resize(ncells);
     }
     void UpdateSaturations(TPZFMatrix<STATE> &dsx);
-    void UpdateSaturationsLastState(TPZFMatrix<STATE> &sw);
+    void SetLastStateSaturation();
     void UpdateSaturationsTo(TPZFMatrix<STATE> &sw);
     void UpdateFractionalFlowsAndLambda(int krModel);
-    void UpdateDensities();
-    void UpdateDensitiesLastState();
+    void UpdateDensitiesAndVolumeFactor();
+    void SetLastStateDensities();
     void UpdateMixedDensity();
+    void SetLastStateVolumeFactor();
+    void SetLastStateVariables();
     void SetProblemData(TSFProblemData *simdata);
     void Print(std::ostream &out);
   };
@@ -170,11 +174,13 @@ public:
   void UpdateInterfacesIntegratedFlux(int matid);
 
   // PLEASE IMPLEMENT THE CONTRIBUTE METHODS
-  void Contribute(int cellId, TPZFMatrix<REAL> &ek,TPZFMatrix<REAL> &ef);
+  void Contribute(int cellId, TPZFMatrix<REAL> &ek, TPZFMatrix<REAL> &ef);
 
   void ContributeResidual(int cellId, TPZFMatrix<REAL> &ef);
-  
-  void ContributeInterface(int interfaceId, int interfaceMatId, TPZFMatrix<REAL> &ek,TPZFMatrix<REAL> &ef);
+
+  void ContributeInterface(int interfaceId, int interfaceMatId, TPZFMatrix<REAL> &ek, TPZFMatrix<REAL> &ef);
 
   void ContributeInterfaceResidual(int interfaceId, int interfaceMatId, TPZFMatrix<REAL> &ef);
+
+  void ContributeBC(int bcId, int bcMatId, TPZFMatrix<REAL> &ek, TPZFMatrix<REAL> &ef);
 };
