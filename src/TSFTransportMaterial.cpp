@@ -155,7 +155,7 @@ REAL TSFTransportMaterial::FractureFactor(TPZMaterialData &data) {
 }
 
 void TSFTransportMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef) {
-
+  return;
   int nref = datavec.size();
 #ifdef PZDEBUG
   if (nref != 3 && nref != 5) {
@@ -214,7 +214,7 @@ void TSFTransportMaterial::Read(TPZStream &buf, void *context) {
 }
 
 void TSFTransportMaterial::ContributeInterface(const TPZMaterialDataT<STATE> &data, const std::map<int, TPZMaterialDataT<STATE>> &datavecleft, const std::map<int, TPZMaterialDataT<STATE>> &datavecright, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef) {
-
+  return;
   if (m_mass_matrix_Q) {
     return;
   }
