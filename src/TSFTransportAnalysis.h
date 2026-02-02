@@ -7,8 +7,8 @@
 #include "TPZLinearAnalysis.h"
 #include "TPZYSMPMatrix.h"
 #ifdef PZ_USING_MKL
-#include "TPZYSMPPardiso.h"
 #include "TPZSpStructMatrix.h"
+#include "TPZYSMPPardiso.h"
 #endif
 #include "TSFAlgebraicTransport.h"
 #include "TSFProblemData.h"
@@ -30,12 +30,11 @@ public:
 
   bool fIsFirstAssemble = true;
 #ifdef PZ_USING_MKL
-  TPZFYsmpMatrixPardiso<STATE>* fMassMatrix;
-  TPZFYsmpMatrixPardiso<STATE>* fTransmissibilityMatrix;
+  TPZFYsmpMatrixPardiso<REAL> *fTransmissibilityMatrix;
 #else
-  TPZFYsmpMatrix<STATE>* fMassMatrix;
-  TPZFYsmpMatrix<STATE>* fTransmissibilityMatrix;
+  TPZFYsmpMatrix<REAL> *fTransmissibilityMatrix;
 #endif
+  TPZFMatrix<REAL> fMassMatrix;
 
   /// Default constructor
   TSFTransportAnalysis();
