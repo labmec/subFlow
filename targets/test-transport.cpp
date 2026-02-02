@@ -66,10 +66,16 @@ int main(int argc, char *const argv[]) {
     darcyAnalysis.PostProcessTimeStep(gmesh->Dimension(), 0);
   } else {
     approxCreator.BuildTransportCmesh();
+    {
+      std::ofstream out("gmesh-after-interfaces.vtk");
+      TPZVTKGeoMesh::PrintGMeshVTK(gmesh, out);
+    }
     TPZCompMesh *transport_cmesh = approxCreator.GetTransportCmesh();
     {
       std::ofstream out("transport-cmesh.vtk");
       TPZVTKGeoMesh::PrintCMeshVTK(transport_cmesh, out);
+      std::ofstream out2("transport-cmesh.txt");
+      transport_cmesh->Print(out2);
     }
     TSFSFIAnalysis SFIAnalysis(darcy_cmesh, transport_cmesh);
     SFIAnalysis.SetProblemData(&simData);
