@@ -6,16 +6,16 @@
         {
             "name": "dom",
             "matid": 1,
-            "K": 1.0,
-            "phi": 1.0
+            "K": 1.83e-5,
+            "phi": 0.3
         }
     ],
     "Boundary": [
         {
             "name": "bottom",
             "matid": 2,
-            "type": 0, // imposed pressure
-            "value": 1.0,
+            "type": 1, // imposed flux
+            "value": 0.0,
             "functionID": 0,
             "ExternalSaturation": 1.0,
             "SaturationFunctionID": 0
@@ -23,7 +23,7 @@
         {
             "name": "right",
             "matid": 3,
-            "type": 1, // imposed flux
+            "type": 0, // imposed pressure
             "value": 0.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
@@ -32,27 +32,27 @@
         {
             "name": "top",
             "matid": 4,
-            "type": 0, // imposed pressure
+            "type": 1, // imposed flux
             "value": 0.0,
-            "functionID": 0,
+            "functionID": 2,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
         },
         {
             "name": "left",
             "matid": 5,
-            "type": 1, // imposed flux
-            "value": 0.0,
+            "type": 0, // imposed pressure
+            "value": 10.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
         }
     ],
     "Numerics": {
-        "AnalysisType": 1, //0: Darcy, 1: Transport, 2: Coupled
+        "AnalysisType": 2, //0: Darcy, 1: Transport, 2: Coupled
         "FluxOrder": 1,
-        "DeltaT": 1.0,
-        "NSteps": 1,
+        "DeltaT": 0.001,
+        "NSteps": 10,
         "Gravity": [
             0.0,
             0.0,
@@ -72,23 +72,27 @@
         "CorrTolTransport": 1.0e-6
     },
     "FluidProperties": {
-        "WaterDensity": 1000.0,
-        "WaterViscosity": 1.0e-3,
-        "WaterCompressibility": 0,
-        "GasDensity": 1.22,
-        "GasViscosity": 1.81e-5,
-        "GasCompressibility": 0,
+        "WaterDensity": 1.0,
+        "WaterViscosity": 1.0,
+        "WaterCompressibility": 0.0,
+        "GasDensity": 1.25e-3,
+        "GasViscosity": 1.83e-2,
+        "GasCompressibility": 0.0,
         "DensityModel": 0, // 0: Linear, 1: Exponential
         "ReferencePressure": 0.0
     },
     "PetroPhysics": {
-        "KrModel": 1, // 0: Linear, 1: Quadratic
+        "KrModel": 0, // 0: Linear, 1: Quadratic
         "Swr": 0.0, // Residual water saturation
         "Sgr": 0.0 // Residual oil saturation
     },
     "ReservoirProperties": {
         "s0": {
-            "functionType": 0,
+            "functionType": 0, //constant saturation at t=0
+            "value": 0.0 //This variable plays different roles according to the functionType
+        },
+        "p0": {
+            "functionType": 0, //constant pressure at t=0
             "value": 0.0 //This variable plays different roles according to the functionType
         }
     },
