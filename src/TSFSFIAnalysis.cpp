@@ -165,6 +165,8 @@ void TSFSFIAnalysis::TransferDarcyToTransport() {
   for (auto &bc_matid : bc_matids) {
     fTransportAnalysis.fAlgebraicTransport.UpdateInterfacesIntegratedFlux(bc_matid);
   }
+
+  fTransportAnalysis.fAlgebraicTransport.fCellsData.UpdateDensitiesAndVolumeFactor();
 }
 
 void TSFSFIAnalysis::UpdateLastStateVariables() {
