@@ -1117,8 +1117,9 @@ void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transp
   transport.fCellsData.fViscosity.resize(2);
   transport.fCellsData.fViscosity[0] = simData->fTFluidProperties.fWaterViscosity;
   transport.fCellsData.fViscosity[1] = simData->fTFluidProperties.fGasViscosity;
-  REAL rhow = simData->fTFluidProperties.fWaterDensityRef;
-  REAL rhog = simData->fTFluidProperties.fGasDensityRef;
+  transport.fCellsData.fReferenceDensity.resize(2);
+  transport.fCellsData.fReferenceDensity[0] = simData->fTFluidProperties.fWaterDensityRef;
+  transport.fCellsData.fReferenceDensity[1] = simData->fTFluidProperties.fGasDensityRef;
   transport.fInitialGasMass = 0.0;
   transport.fInitialWaterMass = 0.0;
 
@@ -1158,8 +1159,6 @@ void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transp
     int eq_number = fTransportCmesh->Block().Position(block_num);
 
     transport.fCellsData.fEqNumber[i] = eq_number;
-    transport.fCellsData.fDensityGas[i] = rhog;
-    transport.fCellsData.fDensityWater[i] = rhow;
 
     int dim = gel->Dimension();
     transport.fCellsData.fCenterCoordinate[i].resize(3);
@@ -1194,12 +1193,21 @@ void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transp
     auto s0_func = transport.fCellsData.fSimData->fTReservoirProperties.fS0Func;
     if (s0_func) s0_value = s0_func(coord);
     transport.fCellsData.fSaturation[i] = s0_value;
-    transport.fCellsData.fSaturationLastState[i] = s0_value;
 
     REAL p0_value = 0.0;
     auto p0_func = transport.fCellsData.fSimData->fTReservoirProperties.fP0Func;
     if (p0_func) p0_value = p0_func(coord);
     transport.fCellsData.fPressure[i] = p0_value;
+
+    auto rhoW_func = transport.fCellsData.fSimData->fTFluidProperties.fWaterDensityFunc;
+    auto rhoG_func = transport.fCellsData.fSimData->fTFluidProperties.fGasDensityFunc;
+    REAL pref = transport.fCellsData.fSimData->fTFluidProperties.fReferencePressure;
+    REAL rhow = std::get<0>(rhoW_func(p0_value));
+    REAL rhog = std::get<0>(rhoG_func(p0_value));
+    transport.fCellsData.fDensityWater[i] = rhow;
+    transport.fCellsData.fDensityGas[i] = rhog;
+    transport.fCellsData.fVolumeFactorWater[i] = rhow / transport.fCellsData.fDensityWater[i];
+    transport.fCellsData.fVolumeFactorGas[i] = rhog / transport.fCellsData.fDensityGas[i];
 
     auto kappa_func = transport.fCellsData.fSimData->fTReservoirProperties.fKappaFunc;
     if (kappa_func) {
@@ -1221,8 +1229,6 @@ void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transp
     REAL V = transport.fCellsData.fVolume[i];
     REAL Sw = transport.fCellsData.fSaturation[i];
     REAL Sg = 1.0 - Sw;
-    REAL rhow = transport.fCellsData.fDensityWater[i];
-    REAL rhog = transport.fCellsData.fDensityGas[i];
     transport.fInitialGasMass += phi * V * Sg * rhog;
     transport.fInitialWaterMass += phi * V * Sw * rhow;
 
