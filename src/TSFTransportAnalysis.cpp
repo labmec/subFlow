@@ -112,10 +112,19 @@ void TSFTransportAnalysis::PostProcessTimeStep(int dimToPost, int step) {
 void TSFTransportAnalysis::Assemble() {
   auto start_time_ass = std::chrono::steady_clock::now();
 
-  TPZLinearAnalysis::Assemble();
+  if (fIsFirstAssemble) {//We call mother class Assemble() to compute the sparsity pattern, but the TSFTransportMaterial doesnt fill the matrix.
+    AssembleMass();
+    fIsFirstAssemble = false;
+  }
+
+  
 
   auto total_time_ass = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time_ass).count() / 1000.;
   std::cout << "---------Time to assemble: " << total_time_ass << " seconds" << std::endl;
+}
+
+void TSFTransportAnalysis::AssembleMass() {
+
 }
 
 void TSFTransportAnalysis::Solve() {

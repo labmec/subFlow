@@ -5,9 +5,11 @@
 #pragma once
 
 #include "TPZLinearAnalysis.h"
-#include "TPZSkylineNSymStructMatrix.h"
-#include "TPZSpStructMatrix.h"
 #include "TPZYSMPMatrix.h"
+#ifdef PZ_USING_MKL
+#include "TPZYSMPPardiso.h"
+#include "TPZSpStructMatrix.h"
+#endif
 #include "TSFAlgebraicTransport.h"
 #include "TSFProblemData.h"
 #include "pzcmesh.h"
@@ -27,10 +29,13 @@ public:
   int fKiteration = 0;
 
   bool fIsFirstAssemble = true;
-
-  TPZFYsmpMatrix<STATE> fMassMatrix;
-
-  TPZFYsmpMatrix<STATE> fTransmissibilityMatrix;
+#ifdef PZ_USING_MKL
+  TPZFYsmpMatrixPardiso<STATE>* fMassMatrix;
+  TPZFYsmpMatrixPardiso<STATE>* fTransmissibilityMatrix;
+#else
+  TPZFYsmpMatrix<STATE>* fMassMatrix;
+  TPZFYsmpMatrix<STATE>* fTransmissibilityMatrix;
+#endif
 
   /// Default constructor
   TSFTransportAnalysis();
@@ -59,18 +64,14 @@ public:
   /// Render a vtk file with requested variables for a time step
   void PostProcessTimeStep(int dimToPost = -1, int step = -1);
 
-  /// Perform a Newton iteration
-  void NewtonIteration();
-
-  /// override assemble to have timers
-  void Assemble() override;
-
   /// override solve to have timers
   void Solve() override;
 
+  /// @brief Assemble the mass matrix. This is done only once at the first Assemble() call.
   void AssembleMass();
 
-  void AssembleTransmissibility();
+  /// @brief Assemble the transmissibility matrix and the rhs.
+  void Assemble() override;
 
   /// Verifies if the sum of the fluxes over all faces of an element is zero
   void VerifyElementFluxes();
