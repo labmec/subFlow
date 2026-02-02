@@ -168,5 +168,13 @@ public:
 
   /// Update the integrated fluxes at the interfaces for a given material id
   void UpdateInterfacesIntegratedFlux(int matid);
+
   // PLEASE IMPLEMENT THE CONTRIBUTE METHODS
+  void Contribute(int cellId, TPZFMatrix<REAL> &ek,TPZFMatrix<REAL> &ef);
+
+  void ContributeResidual(int cellId, TPZFMatrix<REAL> &ef);
+  
+  void ContributeInterface(int interfaceId, int interfaceMatId, TPZFMatrix<REAL> &ek,TPZFMatrix<REAL> &ef);
+
+  void ContributeInterfaceResidual(int interfaceId, int interfaceMatId, TPZFMatrix<REAL> &ef);
 };
