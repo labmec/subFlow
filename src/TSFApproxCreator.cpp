@@ -161,41 +161,41 @@ void TSFApproxCreator::CreateInterfaceElements() {
   }
 
   // // Interface Element between boundary and domain elements
-  // for (auto const &BcMatID : bcMatIds) {
-  //   for (int64_t el = 0; el < nel; el++) {
-  //     int meshDim = gmesh->Dimension();
+  for (auto const &BcMatID : bcMatIds) {
+    for (int64_t el = 0; el < nel; el++) {
+      int meshDim = gmesh->Dimension();
 
-  //     TPZGeoEl *geoEl = gmesh->Element(el);
-  //     int matID = geoEl->MaterialId();
+      TPZGeoEl *geoEl = gmesh->Element(el);
+      int matID = geoEl->MaterialId();
 
-  //     if (matID != BcMatID) continue;
+      if (matID != BcMatID) continue;
 
-  //     int nSides = geoEl->NSides();
-  //     TPZGeoElSide geoElSide(geoEl, nSides - 1);
-  //     TPZCompElSide compElSide = geoElSide.Reference();
+      int nSides = geoEl->NSides();
+      TPZGeoElSide geoElSide(geoEl, nSides - 1);
+      TPZCompElSide compElSide = geoElSide.Reference();
 
-  //     TPZStack<TPZGeoElSide> neighbourSet;
-  //     geoElSide.AllNeighbours(neighbourSet);
+      TPZStack<TPZGeoElSide> neighbourSet;
+      geoElSide.AllNeighbours(neighbourSet);
 
-  //     int64_t nneighs = neighbourSet.size();
+      int64_t nneighs = neighbourSet.size();
 
-  //     for (int stack_i = 0; stack_i < nneighs; stack_i++) {
-  //       TPZGeoElSide neighbour = neighbourSet[stack_i];
-  //       int neighMatID = neighbour.Element()->MaterialId();
-  //       TPZCompElSide compElNeigh = neighbour.Reference();
+      for (int stack_i = 0; stack_i < nneighs; stack_i++) {
+        TPZGeoElSide neighbour = neighbourSet[stack_i];
+        int neighMatID = neighbour.Element()->MaterialId();
+        TPZCompElSide compElNeigh = neighbour.Reference();
 
-  //       int64_t neighIndex = neighbour.Element()->Index();
+        int64_t neighIndex = neighbour.Element()->Index();
 
-  //       if (neighbour.Element()->Dimension() != meshDim) continue;
+        if (neighbour.Element()->Dimension() != meshDim) continue;
 
-  //       if (neighbour.Element()->HasSubElement())
-  //         DebugStop();
+        if (neighbour.Element()->HasSubElement())
+          DebugStop();
 
-  //       TPZGeoElBC gbc(neighbour, interfaceMatId);
-  //       TPZInterfaceElement *mp_interface_el = new TPZInterfaceElement(*fTransportMesh, gbc.CreatedElement(), compElSide, compElNeigh);
-  //     }
-  //   }
-  // }
+        TPZGeoElBC gbc(neighbour, BcMatID);
+        TPZInterfaceElement *mp_interface_el = new TPZInterfaceElement(*fTransportMesh, gbc.CreatedElement(), compElSide, compElNeigh);
+      }
+    }
+  }
 
   // Interface Element between domain neighbour elements
   for (int64_t el = 0; el < nel; el++) {
