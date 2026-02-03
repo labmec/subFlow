@@ -244,7 +244,7 @@ void TSFTransportAnalysis::Assemble() {
   }
 #endif
 
-  sparseMatrix->SetData(std::move(IA), std::move(JA), std::move(A));
+  sparseMatrix->CopyFrom(fTransmissibilityMatrix);
 
   auto total_time_ass = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time_ass).count() / 1000.;
   std::cout << "---------Time to assemble: " << total_time_ass << " seconds" << std::endl;
