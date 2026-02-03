@@ -66,16 +66,10 @@ void TSFDataTransfer::IdentifyInterfaceGeometricElements() {
   int64_t num_interfaces = 0;
   for (int64_t el = 0; el < neltr; el++) {
     TPZCompEl *cel = fTransportCmesh->Element(el);
-    TPZMultiphysicsInterfaceElement *interf = dynamic_cast<TPZMultiphysicsInterfaceElement *>(cel);
-    TPZInterfaceElement *interf2 = dynamic_cast<TPZInterfaceElement *>(cel);
-    if (!interf && !interf2)
+    TPZInterfaceElement *interface_el = dynamic_cast<TPZInterfaceElement *>(cel);
+    if (!interface_el)
       continue;
-
-    TPZGeoEl *gel = nullptr;
-    if (interf)
-      gel = interf->Reference();
-    else
-      gel = interf2->Reference();
+    TPZGeoEl *gel = interface_el->Reference();
 
     int ncorner = gel->NCornerNodes();
     if (ncorner > 4)
@@ -217,9 +211,6 @@ void TSFDataTransfer::IdentifyVolumeGeometricElements2() {
         TakeOrientationAndLowerIndexDimVolDimFrac(rightside, leftside, orientationR, lowerIndexR, orientationL, lowerIndexL, it->first);
       } else if ((dimL == dimR) && (dimR == meshdim)) {
         TakeOrientationAndLowerIndexDimDim(rightside, leftside, orientationR, lowerIndexR, orientationL, lowerIndexL, it->first);
-      } else if ((dimL == dimR) && dimR == meshdim - 1) {
-        TakeOrientationAndLowerIndexFracFrac(rightside, leftside, orientationR, lowerIndexR, orientationL, lowerIndexL, it->first);
-        //                DebugStop();
       } else {
         DebugStop();
       }

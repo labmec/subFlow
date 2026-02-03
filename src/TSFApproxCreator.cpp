@@ -137,14 +137,119 @@ void TSFApproxCreator::BuildTransportCmesh() {
     fTransportMesh->InsertMaterialObject(bcond);
   }
 
-  fTransportMesh->AutoBuild();
-  fTransportMesh->LoadReferences();
-
   // Insert interface
   int interfaceMatId = fSimData->fTGeometry.fInterface_material_id;
   TSFTransportMaterial *matInterface = new TSFTransportMaterial(interfaceMatId, dimension - 1);
   fTransportMesh->InsertMaterialObject(matInterface);
-  CreateInterfaceElements();
+
+  fTransportMesh->AutoBuild();
+  fTransportMesh->LoadReferences();
+  {
+    std::ofstream out("transportcmesh-before.vtk");
+    TPZVTKGeoMesh::PrintCMeshVTK(fTransportMesh, out);
+  }
+
+  // CreateInterfaceElements();
+  auto GetMaterialIds = [this](int dim, std::set<int> &matids, std::set<int> &bcmatids) {
+#ifdef PZDEBUG
+  // std::cout << "\n===> GetMaterialIds - Identifying material objects for dimension " << dim << std::endl;
+#endif
+    TPZGeoMesh *gmesh = TPZHDivApproxCreator::fGeoMesh;
+    if (dim == gmesh->Dimension()) {
+      std::map<std::string, int> &DomainDimNameAndPhysicalTag = fSimData->fTGeometry.fDomainNameAndMatId;
+      for (auto chunk : DomainDimNameAndPhysicalTag) {
+#ifdef PZDEBUG
+        std::string material_name = chunk.first;
+        // std::cout << "physical name = " << material_name << " matid " << chunk.second << std::endl;
+#endif
+        matids.insert(chunk.second);
+      }
+
+      for (auto &chunk : fSimData->fTBoundaryConditions.fBCDarcyMatIdToTypeValue) {
+        int bc_id = chunk.first;
+#ifdef PZDEBUG
+        // std::cout << "boundary condition matid " << bc_id << std::endl;
+#endif
+        bcmatids.insert(bc_id);
+      }
+    }
+    // Note: fracture handling code removed as fDomainFracNameAndMatId and
+    // fBCFlowFracMatIdToTypeValue don't exist in current data structure
+  };
+
+  auto findNeighElementbyMatId = [](TPZGeoElSide &gelside, std::vector<TPZGeoElSide> &neihside, std::set<int> VolMatIds) {
+    int verif = 0;
+    TPZGeoElSide NeihSideAux = gelside.Neighbour();
+    while (gelside != NeihSideAux) {
+      for (auto Mat_id : VolMatIds) {
+        if (NeihSideAux.Element()->MaterialId() == Mat_id) {
+          neihside.push_back(NeihSideAux);
+          verif = 1;
+          break;
+        }
+      }
+      NeihSideAux = NeihSideAux.Neighbour();
+    }
+  };
+
+  auto CreateElementInterfaces = [this, &GetMaterialIds, &findNeighElementbyMatId](TPZGeoEl *gel) {
+    const int domaindim = TPZHDivApproxCreator::fGeoMesh->Dimension();
+    int dimension = gel->Dimension();
+    int nsides = gel->NSides();
+    int ncoord = gel->NCornerNodes();
+    int transport_matid = fSimData->fTGeometry.fInterface_material_id;
+
+    int val = 0;
+    if (dimension == 3) {
+      val = gel->NSides(1);
+    }
+    std::set<int> VolMatIds;
+    std::set<int> Boundaries;
+    GetMaterialIds(dimension, VolMatIds, Boundaries);
+
+    std::set<int> FracMatID;
+    std::set<int> fracbcs;
+    GetMaterialIds(dimension - 1, FracMatID, fracbcs);
+
+    for (int iside = ncoord + val; iside < nsides - 1; iside++) {
+      TPZGeoElSide gelside(gel, iside);
+      std::vector<TPZGeoElSide> gelneigVec;
+      // Volumetric Elements
+      TPZCompElSide celside_l = gelside.Reference();
+      findNeighElementbyMatId(gelside, gelneigVec, VolMatIds);
+      if (gelneigVec.size() == 1) {
+        TPZGeoElSide gelneig = gelneigVec[0];
+        std::vector<TPZGeoElSide> gelfracVec;
+        if (gel->Id() < gelneig.Element()->Id()) {
+          TPZCompElSide celside_r = gelneig.Reference();
+          TPZGeoElBC gbc(gelside, transport_matid);
+          TPZInterfaceElement *mp_interface_el = new TPZInterfaceElement(*fTransportMesh, gbc.CreatedElement(), celside_l, celside_r);
+        }
+      } else if (gelneigVec.size() == 0) { // BoundaryElements
+        findNeighElementbyMatId(gelside, gelneigVec, Boundaries);
+        if (gelneigVec.size() != 1)
+          DebugStop(); // if has no volume neighbors, it HAS to have a bc neighbor
+        TPZGeoElSide gelneig = gelneigVec[0];
+        TPZCompElSide celside_r = gelneig.Reference();
+        int matId = gelneig.Element()->MaterialId();
+        TPZGeoElBC gbc(gelside, matId);
+        TPZInterfaceElement *mp_interface_el = new TPZInterfaceElement(*fTransportMesh, gbc.CreatedElement(), celside_l, celside_r);
+      } else
+        DebugStop(); // Can only have one or zero volume neighbor
+    }
+  };
+
+  for (TPZCompEl *cel : fTransportMesh->ElementVec()) {
+    if (!cel) {
+      continue;
+    }
+    TPZGeoEl *gel = cel->Reference();
+    CreateElementInterfaces(gel);
+  }
+  {
+    std::ofstream out("transportcmesh-after.vtk");
+    TPZVTKGeoMesh::PrintCMeshVTK(fTransportMesh, out);
+  }
 }
 
 void TSFApproxCreator::CreateInterfaceElements() {
