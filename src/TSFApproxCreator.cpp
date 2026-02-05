@@ -150,31 +150,20 @@ void TSFApproxCreator::BuildTransportCmesh() {
   }
 
   // CreateInterfaceElements();
+
   auto GetMaterialIds = [this](int dim, std::set<int> &matids, std::set<int> &bcmatids) {
-#ifdef PZDEBUG
-  // std::cout << "\n===> GetMaterialIds - Identifying material objects for dimension " << dim << std::endl;
-#endif
     TPZGeoMesh *gmesh = TPZHDivApproxCreator::fGeoMesh;
     if (dim == gmesh->Dimension()) {
       std::map<std::string, int> &DomainDimNameAndPhysicalTag = fSimData->fTGeometry.fDomainNameAndMatId;
       for (auto chunk : DomainDimNameAndPhysicalTag) {
-#ifdef PZDEBUG
-        std::string material_name = chunk.first;
-        // std::cout << "physical name = " << material_name << " matid " << chunk.second << std::endl;
-#endif
         matids.insert(chunk.second);
       }
 
       for (auto &chunk : fSimData->fTBoundaryConditions.fBCDarcyMatIdToTypeValue) {
         int bc_id = chunk.first;
-#ifdef PZDEBUG
-        // std::cout << "boundary condition matid " << bc_id << std::endl;
-#endif
         bcmatids.insert(bc_id);
       }
     }
-    // Note: fracture handling code removed as fDomainFracNameAndMatId and
-    // fBCFlowFracMatIdToTypeValue don't exist in current data structure
   };
 
   auto findNeighElementbyMatId = [](TPZGeoElSide &gelside, std::vector<TPZGeoElSide> &neihside, std::set<int> VolMatIds) {
@@ -297,7 +286,7 @@ void TSFApproxCreator::CreateInterfaceElements() {
           DebugStop();
 
         TPZGeoElBC gbc(neighbour, BcMatID);
-        TPZInterfaceElement *mp_interface_el = new TPZInterfaceElement(*fTransportMesh, gbc.CreatedElement(), compElSide, compElNeigh);
+        TPZInterfaceElement *mp_interface_el = new TPZInterfaceElement(*fTransportMesh, gbc.CreatedElement(), compElNeigh, compElSide);
       }
     }
   }
