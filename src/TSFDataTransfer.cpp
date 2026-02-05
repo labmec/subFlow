@@ -685,106 +685,51 @@ void TSFDataTransfer::BuildDarcyToTransportDataStructures(TPZCompMesh *darcy_cme
   darcy_cmesh->LoadReferences();
   if (cellist.size()) {
     // compute the number of connects that will transfer information
-    std::map<int, TPZManVector<int64_t, 4>> ncontransfer;
+    std::map<int, TPZManVector<int64_t, 10>> ncontransfer;
     std::map<int, TPZStack<int64_t>> connectindexes;
     // build the connect list to be transferred
     // identify the face index in the algebraic data structure
     for (auto it = cellist.begin(); it != cellist.end(); it++) {
       TPZCompEl *cel = *it;
       TPZFastCondensedElement *condensed = dynamic_cast<TPZFastCondensedElement *>(cel);
-      TPZCondensedCompEl *cnd = dynamic_cast<TPZCondensedCompEl *>(cel);
-      TPZCompEl *candidate = nullptr;
-      TPZElementGroup *group = nullptr;
-      TPZMultiphysicsElement *mphys = nullptr;
-      if (condensed) {
-        candidate = condensed->ReferenceCompEl();
-        group = dynamic_cast<TPZElementGroup *>(candidate);
-      }
-      if (cnd) {
-        mphys = dynamic_cast<TPZMultiphysicsElement *>(cnd->ReferenceCompEl());
-        cel = mphys;
-      }
-
-      if (group) {
-        mphys = findMultiphysics(group);
-        condensed->SetIsGroup(true);
-        condensed->SetMultiphysics(mphys);
-        cel = mphys;
-      }
-      if (condensed && !group) {
-        mphys = dynamic_cast<TPZMultiphysicsElement *>(candidate);
-        condensed->SetMultiphysics(mphys);
-        cel = mphys;
-      }
+      TPZMultiphysicsElement *mphys = dynamic_cast<TPZMultiphysicsElement *>(condensed->ReferenceCompEl());
+      condensed->SetMultiphysics(mphys);
+      cel = mphys;
       TPZGeoEl *gel = cel->Reference();
       TPZCompEl *hdiv = mphys->ReferredElement(0);
       if (!hdiv) {
         DebugStop();
       }
-      TPZCompElHDivCollapsed<pzshape::TPZShapeQuad> *collapsedQuad = dynamic_cast<TPZCompElHDivCollapsed<pzshape::TPZShapeQuad> *>(hdiv);
-      TPZCompElHDivCollapsed<pzshape::TPZShapeTriang> *collapsedTriangle = dynamic_cast<TPZCompElHDivCollapsed<pzshape::TPZShapeTriang> *>(hdiv);
       int nc = hdiv->NConnects();
       if (nc == 1) {
-        // a boundary condition element
-        // boundary elements are not considered
-        continue;
+        continue; // boundary elements are not considered
       } else {
         int nsides = gel->NSides();
         int dim = gel->Dimension();
         int numfaces = gel->NSides(dim - 1);
         int firstside = nsides - numfaces - 1;
-        if (collapsedQuad) {
-          numfaces = 6;
-        }
-        if (collapsedTriangle) {
-          numfaces = 5;
-        }
         if (nc != numfaces + 1) DebugStop();
-        int warning = 0;
         for (int ic = 0; ic < nc - 1; ic++) {
-
-          if (collapsedQuad && ic == 4) {
-            warning = 1;
-            nc++;
-            continue;
-          }
-
-          if (collapsedTriangle && ic == 3) {
-            warning = 1;
-            nc++;
-            continue;
-          }
-
           int side = firstside + ic;
-          if (warning) {
-            side = side - 1;
-          }
           TPZGeoElSide gelside(gel, side);
           int nshape = cel->Connect(ic).NShape();
+          if (nshape > 4) {
+            DebugStop();
+          }
           int64_t cindex = cel->ConnectIndex(ic);
 
-          if (shouldtransfer[cindex] != 0) continue;
+          if (shouldtransfer[cindex] != 0) {
+            continue;
+          }
 
-          TPZSubCompMesh *scmesh = dynamic_cast<TPZSubCompMesh *>(fDarcyCmesh);
-          int matid = -10000;
-          if (scmesh) {
-            std::map<int64_t, int64_t>::iterator it = scmesh->LocalToFather().find(cindex);
-            if (it != scmesh->LocalToFather().end()) {
-              const int fatherConnect = it->second;
-              matid = fConnectsByInterfaceMatID[fatherConnect];
-            } else {
-              DebugStop();
-            }
-
-          } else
-            matid = fConnectsByInterfaceMatID[cindex];
+          int matid = fConnectsByInterfaceMatID[cindex];
 
           if (matid == -10000) {
             DebugStop();
           }
 
           if (ncontransfer.find(matid) == ncontransfer.end()) {
-            ncontransfer[matid].Resize(4, 0);
+            ncontransfer[matid].Resize(nshape, 0);
           }
 
           connectindexes[matid].Push(cindex);
@@ -806,7 +751,8 @@ void TSFDataTransfer::BuildDarcyToTransportDataStructures(TPZCompMesh *darcy_cme
     for (auto &it : ncontransfer) {
       int matid = it.first;
       int nc = connectindexes[matid].size();
-      for (int is = 0; is < 4; is++) {
+      int nshape = it.second.size();
+      for (int is = 0; is < nshape; is++) {
         if (ncontransfer[matid][is] == 0) continue;
         TFromDarcyToTransport transport;
         transport.fMatid = matid;
