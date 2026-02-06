@@ -49,7 +49,7 @@
         }
     ],
     "Numerics": {
-        "AnalysisType": 2, //0: Darcy, 1: Transport, 2: Coupled
+        "AnalysisType": 1, //0: Darcy, 1: Transport, 2: Coupled
         "FluxOrder": 1,
         "DeltaT": 0.001,
         "NSteps": 10,
