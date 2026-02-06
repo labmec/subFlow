@@ -91,7 +91,7 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
     if (tstep == 1) {
       PostProcessTimeStep(fSimData->fTPostProcess.fProblemTypeInit, dim, tstep);
       nextPostProcessTime = postProcessTimes[tstep];
-    } else if (time >= nextPostProcessTime - 1e-8) {
+    } else if (time >= nextPostProcessTime - 1.0e-8) {
       PostProcessTimeStep(fSimData->fTPostProcess.fProblemType, dim, tstep);
       nextPostProcessTime = postProcessTimes[tstep];
     }
@@ -122,7 +122,7 @@ void TSFSFIAnalysis::RunTimeStep(std::ostream &out) {
       out << "Solving Darcy Problem..." << std::endl;
       fDarcyAnalysis.RunTimeStep(out);
       TransferDarcyToTransport(); // Update transport problem with new densities and fluxes
-      if (fSimData->fTNumerics.fIsLinearTrace) fShouldSolveDarcy = false;
+      if (fSimData->fTNumerics.fAnalysisType == 1) fShouldSolveDarcy = false;
     }
 
     // Solve Transport Problem
