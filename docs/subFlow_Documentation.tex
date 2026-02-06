@@ -90,7 +90,7 @@ The standard workflow for simulating multiphase flow with subFlow consists of fo
 \newpage
 \section{Preprocessing Classes}
 
-Preprocessing classes handle the preparation of the computational problem, including reading input data, building meshes, and setting up the approximation spaces.
+Preprocessing classes handle the preparation of the computational problem, including reading input data, building meshes, and setting up the approximation spaces. For convenience, all its atributes are public.
 
 \subsection{TSFProblemData}
 
@@ -119,87 +119,9 @@ void Write(TPZStream &buf, int withclassid) const;
 void Read(TPZStream &buf, void *context);
 \end{lstlisting}
 
-\textbf{Data Structures:}
-
-The class contains nested structures for organizing related data:
-
-\begin{description}
-    \item[\lstinline|TGeometry|] Stores mesh information including domain names, material IDs, mesh source (GMSH), and standard material IDs for various element types
-    \item[\lstinline|TNumerics|] Contains numerical parameters: analysis type, time stepping, convergence tolerances, iteration limits, thread counts
-    \item[\lstinline|TFluidProperties|] Fluid data: density, viscosity, compressibility models for water and gas
-    \item[\lstinline|TPetroPhysics|] Rock properties: relative permeability model and residual saturations
-    \item[\lstinline|TReservoirProperties|] Initial conditions for pressure and saturation
-    \item[\lstinline|TPostProcess|] Output control: post-processing frequency, threading options, VTK resolution
-\end{description}
-
-\subsection{TSFApproxCreator}
-
-\textbf{Purpose:} Builds the finite element approximation spaces and computational meshes for Darcy and transport problems.
-
-\textbf{Location:} \lstinline|src/TSFApproxCreator.h|
-
-\textbf{Responsibilities:}
-\begin{itemize}
-    \item Configure the Darcy finite element space ($\mathbf{H}(\text{div})$ for fluxes, $L^2$ for pressure)
-    \item Create atomic computational meshes for different physical spaces
-    \item Construct multiphysics computational mesh coupling flux and pressure spaces
-    \item Add material objects for Darcy equation
-    \item Condense high-order elements to improve computational efficiency
-    \item Build auxiliary transport mesh for post-processing and interface identification
-    \item Insert interface elements between subdomains
-\end{itemize}
-
-\textbf{Key Methods:}
-\begin{lstlisting}[language=C++]
-// Set problem data reference
-void SetProblemData(TSFProblemData *simData);
-
-// Configure Darcy approximation space
-void ConfigureDarcySpace();
-
-// Add Darcy materials to the mesh
-void AddDarcyMaterials();
-
-// Create complete approximation space (main driver)
-TPZMultiphysicsCompMesh *CreateApproximationSpace();
-
-// Condense elements for efficiency
-void CondenseElements(TPZCompMesh *cmesh, 
-                      char LagrangeLevelNotCondensed, 
-                      bool keepmatrix = true);
-
-// Build auxiliary transport mesh
-void BuildTransportCmesh();
-
-// Create interface elements
-void CreateInterfaceElements();
-
-// Get transport mesh reference
-TPZCompMesh *GetTransportCmesh();
-\end{lstlisting}
-
-\subsection{TPZFastCondensedElement}
-
-\textbf{Purpose:} Implements static condensation of high-order element degrees of freedom to reduce the system size.
-
-\textbf{Location:} \lstinline|src/TPZFastCondensedElement.h|
-
-\textbf{Responsibilities:}
-\begin{itemize}
-    \item Perform element-level static condensation (Schur complement)
-    \item Eliminate interior degrees of freedom without solving the full system
-    \item Improve computational efficiency for high-order approximations
-    \item Maintain matrix structure for efficient storage and assembly
-\end{itemize}
-
-\newpage
-\section{Input File Format}
-
-subFlow uses JSON-based configuration files to define simulation parameters. This section describes the structure and available options.
-
 \subsection{JSON File Structure Overview}
 
-A complete subFlow configuration file contains six main sections:
+subFlow uses JSON-based configuration files to define simulation parameters. This section describes the structure and available options. A complete configuration file contains six main sections:
 
 \begin{lstlisting}[language=json]
 {
@@ -222,13 +144,13 @@ A complete subFlow configuration file contains six main sections:
 \begin{lstlisting}[language=json]
 "UseGMsh": true|false
 \end{lstlisting}
-Specifies whether to read mesh from a GMSH file. If \lstinline|false|, the mesh is generated internally.
+Specifies whether to read mesh from a GMSH file. If \lstinline|false|, the mesh is generated internally by NeoPZ.
 
 \subsubsection{MshFile}
 \begin{lstlisting}[language=json]
 "MshFile": "path/to/mesh.msh"
 \end{lstlisting}
-Path to the GMSH mesh file (relative to the input directory). Required if \lstinline|UseGMsh| is \lstinline|true|.
+GMSH mesh file name (must be placed in the input directory). Required if \lstinline|UseGMsh| is \lstinline|true|.
 
 \subsubsection{Dimension}
 \begin{lstlisting}[language=json]
@@ -243,7 +165,7 @@ Defines regions within the reservoir with homogeneous properties.
 \begin{lstlisting}[language=json]
 "Domains": [
     {
-        "name": "domain_name",      // String identifier
+        "name": "string",           // Name identifier
         "matid": integer,           // Unique material ID
         "K": float,                 // Permeability (absolute)
         "phi": float                // Porosity (0 to 1)
@@ -271,14 +193,16 @@ Defines boundary conditions on the domain edges/surfaces.
 \begin{lstlisting}[language=json]
 "Boundary": [
     {
-        "name": "boundary_name",           // String identifier
+        "name": "string",                  // Name identifier
         "matid": integer,                  // Unique material ID
         "type": integer,                   // 0: Dirichlet (pressure), 
                                            // 1: Neumann (flux)
         "value": float,                    // BC value
-        "functionID": integer,             // Function ID (reserved)
+        "functionID": integer,             // 0: Uses value, 
+                                           // other: the ID of a user-defined function in TSFFunctionsGenerator.h
         "ExternalSaturation": float,       // Saturation for injection
-        "SaturationFunctionID": integer    // Saturation function ID
+        "SaturationFunctionID": integer    // 0: Uses ExternalSaturation, 
+                                           // other: the ID of a user-defined function in TSFFunctionsGenerator.h
     },
     ...
 ]
@@ -418,12 +342,12 @@ Initial conditions for pressure and saturation fields.
 \begin{lstlisting}[language=json]
 "ReservoirProperties": {
     "s0": {
-        "functionType": integer,  // 0: Constant, 1: Spatial
-        "value": float            // Initial value or parameter
+        "functionType": integer,  // 0: Constant, other: the ID of a user-defined function in TSFFunctionsGenerator.h
+        "value": float            // Initial value
     },
     "p0": {
-        "functionType": integer,  // 0: Constant, 1: Spatial
-        "value": float            // Initial value or parameter
+        "functionType": integer,  // 0: Constant, other: the ID of a user-defined function in TSFFunctionsGenerator.h
+        "value": float            // Initial value
     }
 }
 \end{lstlisting}
@@ -463,6 +387,120 @@ Controls output and visualization options.
 }
 \end{lstlisting}
 
+\subsection{TSFApproxCreator}
+
+\textbf{Purpose:} Builds the finite element approximation spaces and computational meshes for Darcy and transport problems.
+
+\textbf{Location:} \lstinline|src/TSFApproxCreator.h|
+
+\textbf{Responsibilities:}
+\begin{itemize}
+    \item Configure the Darcy finite element space ($\mathbf{H}(\text{div})$ for fluxes, $L^2$ for pressure)
+    \item Create atomic computational meshes for different physical spaces
+    \item Construct multiphysics computational mesh coupling flux and pressure spaces
+    \item Add material objects for Darcy equation
+    \item Condense high-order elements to improve computational efficiency. By default, it uses TPZFastCondensedElement for fast matrix updating, but the user can choose to use standard static condensation by setting \texttt{-DUSE\_FAST\_CONDENSED\_COMPEL=false} during CMake configuration.
+    \item Build auxiliary transport mesh for post-processing and interface identification. This mesh is not used to assemble the transport problem.
+    \item Insert interface elements between domain elements and boundary conditions for transport problem.
+\end{itemize}
+
+\textbf{Key Methods:}
+\begin{lstlisting}[language=C++]
+// Set problem data reference
+void SetProblemData(TSFProblemData *simData);
+
+// Configure Darcy approximation space
+void ConfigureDarcySpace();
+
+// Add Darcy materials to the mesh
+void AddDarcyMaterials();
+
+// Create complete approximation space (main driver)
+TPZMultiphysicsCompMesh *CreateApproximationSpace();
+
+// Build auxiliary transport mesh
+void BuildTransportCmesh();
+\end{lstlisting}
+
+\subsection{TPZFastCondensedElement}
+
+\textbf{Purpose:} Implements static condensation of high-order element degrees of freedom to reduce the system size. The assembly is performed only once, and the matrix updating is done purely in an algebraic way.
+
+\textbf{Location:} \lstinline|src/TPZFastCondensedElement.h|
+
+\textbf{Responsibilities:}
+\begin{itemize}
+    \item Perform element-level static condensation (Schur complement)
+    \item Eliminate interior degrees of freedom without solving the full system
+    \item Improve computational efficiency for high-order approximations
+    \item Update condensed matrices algebraically during nonlinear iterations.
+\end{itemize}
+
+\textbf{Key Methods:}
+\begin{lstlisting}[language=C++]
+// Computes the element stifness matrix and right hand side
+void CalcStiff(TPZElementMatrixT<STATE> &ek,TPZElementMatrixT<STATE> &ef);
+\end{lstlisting}
+
+Implements an efficient algebraic matrix update strategy for nonlinear multiphase flow problems. Instead of reassembling the element matrix from scratch at each Newton iteration, it reuses a precomputed reference matrix and applies selective algebraic coefficient modifications. This achieves $O(1)$ complexity per iteration for matrix assembly.
+
+\paragraph{Reference Matrix Caching (First Assembly)}
+On the first call (when \texttt{fMatrixComputed == false}), the method:
+\begin{itemize}
+    \item Assembles the full condensed element stiffness matrix via the parent class: \texttt{TPZCondensedCompElT::CalcStiff(fEK, fEF)}.
+    \item Stores the reference matrix and RHS: \texttt{fEK}, \texttt{fEF}.
+    \item Computes and caches body force contributions for pressure equations.
+    \item Sets \texttt{fMatrixComputed = true} to skip reassembly in subsequent calls.
+\end{itemize}
+
+\paragraph{Selective Coefficient Scaling}
+The method copies the reference matrices: \texttt{ek = fEK}, \texttt{ef = fEF}, and applies selective scaling to the stiffness matrix to account for changes in fluid properties:
+\begin{itemize}
+    \item Interior (flux) rows/columns: multiplied by $\dfrac{1}{\lambda}$ (reducing coupling strength when $\lambda > 1$).
+    \item Last row/column (pressure equation): multiplied by $\lambda$ (maintaining coupling consistency).
+\end{itemize}
+This asymmetric scaling keeps the mixed system well-posed while controlling the pressure--flux coupling strength through $\lambda$ (stored in \texttt{fLambda}).
+
+\paragraph{Solution Vector Extraction}
+The current solution vector is extracted from the computational mesh via \texttt{GetSolutionVector()}, which gathers values from all connected pressure and flux degrees of freedom.
+
+\paragraph{RHS Modification for Density Variation}
+The RHS is scaled by the mixture density factor:
+\[
+    \text{ef} \leftarrow \text{ef} \times G_\lambda
+\]
+(stored in \texttt{fMixedDensity}). This accounts for changes in the effective density:
+\[
+    G_{\lambda} = \rho_w f_w + \rho_g f_g
+\]
+as water and gas saturation vary. A compressibility contribution is added to the average pressure equation (last row):
+\[
+    \text{ef}[nrows-1] \mathrel{+}= \texttt{fCompressibilityRhsTerm}.
+\]
+
+where \texttt{fCompressibilityRhsTerm} stores $\int_{\Omega_e} \frac{\phi}{\Delta t}\left[(\frac{s_w^{n+1}}{b_w^{n+1}}+\frac{s_g^{n+1}}{b_g^{n+1}})- (\frac{s_w^{n}}{b_w^{n}}+\frac{s_g^{n}}{b_g^{n}})\right]\,d\Omega_e$.
+
+\paragraph{Residual Computation (Nonlinear Effects)}
+The residual contribution from the current solution is computed as:
+\[
+    \text{ef} \leftarrow \text{ef} - \mathbf{K}\cdot\vec{u}
+\]
+
+This residual incorporates nonlinear effects of the current pressure and flux state, which is essential for Newton iteration convergence.
+
+\paragraph{Compressibility Matrix Term}
+
+Finally, the last diagonal entry is set:
+
+\[
+    \mathbf{K}[nrows-1,ncols-1] = \texttt{fCompressibilityMatrixTerm}.
+\]
+where \texttt{fCompressibilityMatrixTerm} = $\int_{\Omega_e} \frac{\phi}{\Delta t}\left(\frac{s_w^{n+1}}{\frac{d(b_w^{n+1})}{dp}}+\frac{s_g^{n+1}}{\frac{d(b_g^{n+1})}{dp}}\right)\,d\Omega_e$, with
+\[
+    \frac{d(b_\alpha)}{dp}=c_\alpha \rho_\alpha^{\text{ref}},
+\]
+where $c_\alpha$ is the compressibility modulus of phase $\alpha$.
+
 \newpage
 \section{Analysis Classes}
 
@@ -470,7 +508,7 @@ Analysis classes implement the solution procedures for the flow and transport pr
 
 \subsection{TSFDarcyAnalysis}
 
-\textbf{Purpose:} Solves the Darcy problem for pressure and flux using the $\mathbf{H}(\text{div})$--$L^2$ mixed finite element formulation.
+\textbf{Purpose:} Solves the Darcy problem for pressure and flux using the $\mathbf{H}(\text{div})$--$L^2$ mixed finite element formulation. By default, it uses \texttt{TPZSSpStructMatrix} for efficient sparse matrix assembly and \texttt{Intel Pardiso} direct solver if Neopz was compiled with \texttt{-DUSE\_MKL}. If MKL is not available, we are in the process of making \texttt{MUMPS} an option.
 
 \textbf{Location:} \lstinline|src/TSFDarcyAnalysis.h|
 
@@ -480,10 +518,9 @@ Analysis classes implement the solution procedures for the flow and transport pr
 \begin{itemize}
     \item Manage the Darcy linear system assembly and solution
     \item Handle nonlinear iterations when densities depend on pressure
-    \item Apply boundary conditions (Dirichlet and Neumann)
+    \item Apply boundary conditions (Dirichlet and Neumann). The first one is applied in a weak manner in the rhs, while the second one is applied via \texttt{TPZEquationFilter}, where the Neumann equations are filtered out and the corresponding flux values are set in the solution vector.
     \item Track number of iterations and timing information
     \item Post-process flux and pressure solutions
-    \item Verify element flux conservation (divergence-free properties)
 \end{itemize}
 
 \textbf{Key Methods:}
@@ -499,32 +536,14 @@ void RunTimeStep(std::ostream &out = std::cout);
 // Post-process and output results
 void PostProcessTimeStep(int dimToPost = -1, int step = -1);
 
-// Perform Newton iteration for nonlinear problems
-void NewtonIteration();
-
 // System assembly and solving
 void Assemble() override;
 void Solve() override;
-
-// Boundary condition handling
-void FillNeumannBCMatids(std::set<int> &neumannMatids);
-void SetInitialBCValue(std::set<int> &neumannMatids);
-void ApplyEquationFilter(std::set<int> &neumannMatids);
-
-// Verification
-void VerifyElementFluxes();
-\end{lstlisting}
-
-\textbf{Data Members:}
-\begin{lstlisting}[language=C++]
-TSFProblemData *fSimData;  // Problem configuration
-int fKiteration;           // Current iteration number
-bool fIsFirstAssemble;     // Flag for first assembly
 \end{lstlisting}
 
 \subsection{TSFTransportAnalysis}
 
-\textbf{Purpose:} Solves the saturation transport problem using a Finite Volume scheme with upwinding.
+\textbf{Purpose:} Solves the saturation transport problem using a Finite Volume scheme with upwinding. This can be seen as an "Interface" class in the sense that it performs the nonlinear iterations, but the assembly of the transport problem is done in the class \texttt{TSFAlgebraicTransport}, which is called inside the method \texttt{Assemble()} of this class.
 
 \textbf{Location:} \lstinline|src/TSFTransportAnalysis.h|
 
@@ -818,8 +837,8 @@ REAL m_fracture_epsilon;   // Fracture parameter
 \section{Class Hierarchy Diagram}
 
 \begin{figure}[h]
-\centering
-\begin{verbatim}
+    \centering
+    \begin{verbatim}
 TPZSavable
     +-- TSFSavable
             +-- TSFProblemData
@@ -853,115 +872,115 @@ This section presents a comprehensive flowchart showing how classes interact dur
 \subsection{Complete Simulation Workflow}
 
 \begin{figure}[h]
-\centering
-\scalebox{0.75}{
-\begin{tikzpicture}[
-    node distance=1.3cm,
-    box/.style={rectangle, draw, fill=blue!20, text width=2.8cm, text centered, rounded corners, minimum height=0.8cm, font=\small},
-    process/.style={rectangle, draw, fill=green!20, text width=2.8cm, text centered, minimum height=0.8cm, font=\small},
-    decision/.style={diamond, draw, fill=yellow!20, text width=1.5cm, text centered, font=\small},
-    io/.style={rectangle, draw, fill=orange!20, text width=2.8cm, text centered, minimum height=0.8cm, font=\small},
-    arrow/.style={->, >=stealth, thick}
-]
+    \centering
+    \scalebox{0.75}{
+        \begin{tikzpicture}[
+                node distance=1.3cm,
+                box/.style={rectangle, draw, fill=blue!20, text width=2.8cm, text centered, rounded corners, minimum height=0.8cm, font=\small},
+                process/.style={rectangle, draw, fill=green!20, text width=2.8cm, text centered, minimum height=0.8cm, font=\small},
+                decision/.style={diamond, draw, fill=yellow!20, text width=1.5cm, text centered, font=\small},
+                io/.style={rectangle, draw, fill=orange!20, text width=2.8cm, text centered, minimum height=0.8cm, font=\small},
+                arrow/.style={->, >=stealth, thick}
+            ]
 
-% Start
-\node[io] (start) {JSON Config};
-\node[box, below=1cm of start] (problemdata) {TSFProblemData};
-\node[io, below=1cm of problemdata] (mesh) {Geometric Mesh};
+            % Start
+            \node[io] (start) {JSON Config};
+            \node[box, below=1cm of start] (problemdata) {TSFProblemData};
+            \node[io, below=1cm of problemdata] (mesh) {Geometric Mesh};
 
-% Approximation Space Creation
-\node[process, below=1cm of mesh] (approx) {TSFApproxCreator};
-\node[box, below left=1cm and 1cm of approx] (darcycmesh) {Darcy CMesh};
-\node[box, below right=1cm and 1cm of approx] (transportcmesh) {Transport CMesh};
+            % Approximation Space Creation
+            \node[process, below=1cm of mesh] (approx) {TSFApproxCreator};
+            \node[box, below left=1cm and 1cm of approx] (darcycmesh) {Darcy CMesh};
+            \node[box, below right=1cm and 1cm of approx] (transportcmesh) {Transport CMesh};
 
-% Material Assignment
-\node[process, below=1.5cm of approx] (materials) {Materials};
+            % Material Assignment
+            \node[process, below=1.5cm of approx] (materials) {Materials};
 
-% Analysis Type Decision
-\node[decision, below=1cm of materials] (analysistype) {Type?};
-\node[box, below left=1.2cm and 1.5cm of analysistype] (darcy) {DarcyAnalysis};
-\node[process, below right=1.2cm and 1.5cm of analysistype] (sfi) {SFIAnalysis};
+            % Analysis Type Decision
+            \node[decision, below=1cm of materials] (analysistype) {Type?};
+            \node[box, below left=1.2cm and 1.5cm of analysistype] (darcy) {DarcyAnalysis};
+            \node[process, below right=1.2cm and 1.5cm of analysistype] (sfi) {SFIAnalysis};
 
-% SFI components
-\node[box, below=1cm of sfi] (darcysolve) {Darcy Solve};
-\node[box, below=1cm of darcysolve] (transportsolve) {Transport Solve};
-\node[process, below=1cm of transportsolve] (transfer) {DataTransfer};
+            % SFI components
+            \node[box, below=1cm of sfi] (darcysolve) {Darcy Solve};
+            \node[box, below=1cm of darcysolve] (transportsolve) {Transport Solve};
+            \node[process, below=1cm of transportsolve] (transfer) {DataTransfer};
 
-% Post-processing
-\node[process, below=1cm of darcy] (postproc) {Post-Process};
-\node[io, below=1cm of postproc] (output) {VTK Output};
+            % Post-processing
+            \node[process, below=1cm of darcy] (postproc) {Post-Process};
+            \node[io, below=1cm of postproc] (output) {VTK Output};
 
-% Arrows - Main flow
-\draw[arrow] (start) -- (problemdata);
-\draw[arrow] (problemdata) -- (mesh);
-\draw[arrow] (mesh) -- (approx);
-\draw[arrow] (approx) -| (darcycmesh);
-\draw[arrow] (approx) -| (transportcmesh);
-\draw[arrow] (darcycmesh) |- (materials);
-\draw[arrow] (transportcmesh) |- (materials);
-\draw[arrow] (materials) -- (analysistype);
+            % Arrows - Main flow
+            \draw[arrow] (start) -- (problemdata);
+            \draw[arrow] (problemdata) -- (mesh);
+            \draw[arrow] (mesh) -- (approx);
+            \draw[arrow] (approx) -| (darcycmesh);
+            \draw[arrow] (approx) -| (transportcmesh);
+            \draw[arrow] (darcycmesh) |- (materials);
+            \draw[arrow] (transportcmesh) |- (materials);
+            \draw[arrow] (materials) -- (analysistype);
 
-% Decision branches
-\draw[arrow] (analysistype) -| node[near start, left, font=\tiny] {Darcy} (darcy);
-\draw[arrow] (analysistype) -| node[near start, right, font=\tiny] {Coupled} (sfi);
+            % Decision branches
+            \draw[arrow] (analysistype) -| node[near start, left, font=\tiny] {Darcy} (darcy);
+            \draw[arrow] (analysistype) -| node[near start, right, font=\tiny] {Coupled} (sfi);
 
-% Darcy path
-\draw[arrow] (darcy) -- (postproc);
+            % Darcy path
+            \draw[arrow] (darcy) -- (postproc);
 
-% SFI path
-\draw[arrow] (sfi) -- (darcysolve);
-\draw[arrow] (darcysolve) -- (transportsolve);
-\draw[arrow] (transportsolve) -- (transfer);
-\draw[arrow] (transfer) -- (postproc);
+            % SFI path
+            \draw[arrow] (sfi) -- (darcysolve);
+            \draw[arrow] (darcysolve) -- (transportsolve);
+            \draw[arrow] (transportsolve) -- (transfer);
+            \draw[arrow] (transfer) -- (postproc);
 
-% Loop back
-\draw[arrow, dashed] (transfer.east) -- ++(1,0) |- (darcysolve.east);
+            % Loop back
+            \draw[arrow, dashed] (transfer.east) -- ++(1,0) |- (darcysolve.east);
 
-% Post-processing
-\draw[arrow] (postproc) -- (output);
+            % Post-processing
+            \draw[arrow] (postproc) -- (output);
 
-\end{tikzpicture}
-}
-\caption{Complete workflow for multiphase flow simulation with subFlow}
+        \end{tikzpicture}
+    }
+    \caption{Complete workflow for multiphase flow simulation with subFlow}
 \end{figure}
 
 \subsection{Data Transfer and Coupling Mechanism}
 
 \begin{figure}[h]
-\centering
-\scalebox{0.8}{
-\begin{tikzpicture}[
-    node distance=2cm,
-    box/.style={rectangle, draw, fill=blue!20, text width=2.5cm, text centered, rounded corners, minimum height=1cm, font=\small},
-    transfer/.style={rectangle, draw, fill=purple!20, text width=2cm, text centered, minimum height=0.7cm, font=\small},
-    arrow/.style={->, >=stealth, thick}
-]
+    \centering
+    \scalebox{0.8}{
+        \begin{tikzpicture}[
+                node distance=2cm,
+                box/.style={rectangle, draw, fill=blue!20, text width=2.5cm, text centered, rounded corners, minimum height=1cm, font=\small},
+                transfer/.style={rectangle, draw, fill=purple!20, text width=2cm, text centered, minimum height=0.7cm, font=\small},
+                arrow/.style={->, >=stealth, thick}
+            ]
 
-\node[box] (darcy) {TSFDarcyAnalysis};
-\node[box, right=4cm of darcy] (transport) {TSFTransportAnalysis};
+            \node[box] (darcy) {TSFDarcyAnalysis};
+            \node[box, right=4cm of darcy] (transport) {TSFTransportAnalysis};
 
-% Data Transfer Components
-\node[transfer, below=1.5cm of darcy] (gather) {Gather Flux};
-\node[transfer, below=1.5cm of transport] (scatter) {Scatter $S_w$};
-\node[box, below=2cm of gather] (datatransfer) {TSFDataTransfer};
-\node[box, below=1.5cm of datatransfer] (algebraic) {TSFAlgebraicTransport};
+            % Data Transfer Components
+            \node[transfer, below=1.5cm of darcy] (gather) {Gather Flux};
+            \node[transfer, below=1.5cm of transport] (scatter) {Scatter $S_w$};
+            \node[box, below=2cm of gather] (datatransfer) {TSFDataTransfer};
+            \node[box, below=1.5cm of datatransfer] (algebraic) {TSFAlgebraicTransport};
 
-% Forward arrows (Darcy to Transport)
-\draw[arrow, blue] (darcy) -- node[above, font=\tiny] {Pressure \& Flux} (transport);
-\draw[arrow] (darcy) -- (gather);
-\draw[arrow] (gather) -| (datatransfer);
+            % Forward arrows (Darcy to Transport)
+            \draw[arrow, blue] (darcy) -- node[above, font=\tiny] {Pressure \& Flux} (transport);
+            \draw[arrow] (darcy) -- (gather);
+            \draw[arrow] (gather) -| (datatransfer);
 
-% Backward arrows (Transport to Darcy)
-\draw[arrow, red] (transport) -- (scatter);
-\draw[arrow] (scatter) -| (datatransfer);
+            % Backward arrows (Transport to Darcy)
+            \draw[arrow, red] (transport) -- (scatter);
+            \draw[arrow] (scatter) -| (datatransfer);
 
-% Central transfer hub
-\draw[arrow] (datatransfer) -- (algebraic);
-\draw[arrow, dashed] (algebraic.west) -- ++(-1,0) |- node[near end, left, font=\tiny] {Next SFI} (darcy.west);
+            % Central transfer hub
+            \draw[arrow] (datatransfer) -- (algebraic);
+            \draw[arrow, dashed] (algebraic.west) -- ++(-1,0) |- node[near end, left, font=\tiny] {Next SFI} (darcy.west);
 
-\end{tikzpicture}
-}
-\caption{Data transfer mechanism in SFI coupling}
+        \end{tikzpicture}
+    }
+    \caption{Data transfer mechanism in SFI coupling}
 \end{figure}
 
 \newpage
@@ -1230,15 +1249,15 @@ The library supports two relative permeability models for both water and gas pha
 
 Water relative permeability:
 $$k_{r,w}(S_w) = \begin{cases}
-0 & \text{if } S_w \leq S_{wr} \\
-\frac{S_w - S_{wr}}{1 - S_{wr}} & \text{if } S_w > S_{wr}
-\end{cases}$$
+        0                               & \text{if } S_w \leq S_{wr} \\
+        \frac{S_w - S_{wr}}{1 - S_{wr}} & \text{if } S_w > S_{wr}
+    \end{cases}$$
 
 Gas relative permeability:
 $$k_{r,g}(S_w) = \begin{cases}
-0 & \text{if } S_g \leq S_{gr} \\
-\frac{S_g - S_{gr}}{1 - S_{gr}} & \text{if } S_g > S_{gr}
-\end{cases}$$
+        0                               & \text{if } S_g \leq S_{gr} \\
+        \frac{S_g - S_{gr}}{1 - S_{gr}} & \text{if } S_g > S_{gr}
+    \end{cases}$$
 
 where $S_g = 1 - S_w$ is the gas saturation.
 
@@ -1246,15 +1265,15 @@ where $S_g = 1 - S_w$ is the gas saturation.
 
 Water relative permeability:
 $$k_{r,w}(S_w) = \begin{cases}
-0 & \text{if } S_w \leq S_{wr} \\
-\left(\frac{S_w - S_{wr}}{1 - S_{wr}}\right)^2 & \text{if } S_w > S_{wr}
-\end{cases}$$
+        0                                              & \text{if } S_w \leq S_{wr} \\
+        \left(\frac{S_w - S_{wr}}{1 - S_{wr}}\right)^2 & \text{if } S_w > S_{wr}
+    \end{cases}$$
 
 Gas relative permeability:
 $$k_{r,g}(S_w) = \begin{cases}
-0 & \text{if } S_g \leq S_{gr} \\
-\left(\frac{S_g - S_{gr}}{1 - S_{gr}}\right)^2 & \text{if } S_g > S_{gr}
-\end{cases}$$
+        0                                              & \text{if } S_g \leq S_{gr} \\
+        \left(\frac{S_g - S_{gr}}{1 - S_{gr}}\right)^2 & \text{if } S_g > S_{gr}
+    \end{cases}$$
 
 where:
 \begin{itemize}
