@@ -108,7 +108,7 @@ void TSFApproxCreator::CondenseElements(TPZCompMesh *cmesh, char LagrangeLevelNo
   cmesh->CleanUpUnconnectedNodes();
 }
 
-void TSFApproxCreator::BuildTransportCmesh() {
+TPZCompMesh *TSFApproxCreator::BuildTransportCmesh() {
   int dimension = fSimData->fTGeometry.fDimension;
 
   fTransportMesh = new TPZCompMesh(TPZHDivApproxCreator::fGeoMesh);
@@ -146,10 +146,6 @@ void TSFApproxCreator::BuildTransportCmesh() {
 
   fTransportMesh->AutoBuild();
   fTransportMesh->LoadReferences();
-  {
-    std::ofstream out("transportcmesh-before.vtk");
-    TPZVTKGeoMesh::PrintCMeshVTK(fTransportMesh, out);
-  }
 
   CreateInterfaceElements();
 
@@ -237,10 +233,7 @@ void TSFApproxCreator::BuildTransportCmesh() {
   //   TPZGeoEl *gel = cel->Reference();
   //   CreateElementInterfaces(gel);
   // }
-  {
-    std::ofstream out("transportcmesh-after.vtk");
-    TPZVTKGeoMesh::PrintCMeshVTK(fTransportMesh, out);
-  }
+  return fTransportMesh;
 }
 
 void TSFApproxCreator::CreateInterfaceElements() {

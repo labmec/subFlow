@@ -31,7 +31,7 @@ public:
   void CondenseElements(TPZCompMesh *cmesh, char LagrangeLevelNotCondensed, bool keepmatrix = true);
 
   /// Creates auxiliary cmesh for transport. Mostly used to identify interfaces
-  void BuildTransportCmesh();
+  TPZCompMesh *BuildTransportCmesh();
 
   /// insert the necessary interface elements
   void CreateInterfaceElements();
