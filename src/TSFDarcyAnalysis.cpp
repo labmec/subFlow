@@ -4,6 +4,7 @@
 
 #include "TSFDarcyAnalysis.h"
 #include "TPZVTKGenerator.h"
+#include "TPZInterfaceEl.h"
 
 using namespace std;
 
@@ -304,6 +305,9 @@ void TSFDarcyAnalysis::ApplyEquationFilter(std::set<int> &neumannMatids) {
     if (neumannMatids.find(elMatID) == neumannMatids.end()) continue;
 
     TPZCompEl *compEl = el->Reference();
+
+    TPZInterfaceElement *interfaceEl = dynamic_cast<TPZInterfaceElement *>(compEl);
+    if (interfaceEl) continue; // skip interface elements, it only belongs to Transport mesh
 
     int64_t nConnects = compEl->NConnects();
 

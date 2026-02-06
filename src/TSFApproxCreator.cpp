@@ -149,7 +149,7 @@ void TSFApproxCreator::BuildTransportCmesh() {
     TPZVTKGeoMesh::PrintCMeshVTK(fTransportMesh, out);
   }
 
-  // CreateInterfaceElements();
+  CreateInterfaceElements();
 
   auto GetMaterialIds = [this](int dim, std::set<int> &matids, std::set<int> &bcmatids) {
     TPZGeoMesh *gmesh = TPZHDivApproxCreator::fGeoMesh;
@@ -228,13 +228,13 @@ void TSFApproxCreator::BuildTransportCmesh() {
     }
   };
 
-  for (TPZCompEl *cel : fTransportMesh->ElementVec()) {
-    if (!cel) {
-      continue;
-    }
-    TPZGeoEl *gel = cel->Reference();
-    CreateElementInterfaces(gel);
-  }
+  // for (TPZCompEl *cel : fTransportMesh->ElementVec()) {
+  //   if (!cel) {
+  //     continue;
+  //   }
+  //   TPZGeoEl *gel = cel->Reference();
+  //   CreateElementInterfaces(gel);
+  // }
   {
     std::ofstream out("transportcmesh-after.vtk");
     TPZVTKGeoMesh::PrintCMeshVTK(fTransportMesh, out);
@@ -254,7 +254,7 @@ void TSFApproxCreator::CreateInterfaceElements() {
     bcMatIds.insert(bcMatId);
   }
 
-  // // Interface Element between boundary and domain elements
+  // Interface Element between boundary and domain elements
   for (auto const &BcMatID : bcMatIds) {
     for (int64_t el = 0; el < nel; el++) {
       int meshDim = gmesh->Dimension();
