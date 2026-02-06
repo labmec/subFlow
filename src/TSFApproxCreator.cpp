@@ -65,6 +65,7 @@ TPZMultiphysicsCompMesh *TSFApproxCreator::CreateApproximationSpace() {
   TPZHDivApproxCreator::CreateAtomicMeshes(meshvec, lagmultilevel); // This method increments the lagmultilevel
   TPZMultiphysicsCompMesh *cmesh = nullptr;
   TPZHDivApproxCreator::CreateMultiPhysicsMesh(meshvec, lagmultilevel, cmesh);
+  cmesh->SetName("DarcyMultiPhysicsMesh");
   CondenseElements(cmesh, lagmultilevel - 1, true);
 
   return cmesh;
@@ -111,6 +112,7 @@ void TSFApproxCreator::BuildTransportCmesh() {
   int dimension = fSimData->fTGeometry.fDimension;
 
   fTransportMesh = new TPZCompMesh(TPZHDivApproxCreator::fGeoMesh);
+  fTransportMesh->SetName("TransportMesh");
   fTransportMesh->SetDimModel(dimension);
   fTransportMesh->SetDefaultOrder(0);
   fTransportMesh->SetAllCreateFunctionsDiscontinuous();
