@@ -1,12 +1,12 @@
 {
     "UseGMsh": true,
-    "MshFile": "test-unsaturated-reservoir-vacuum.msh",
+    "MshFile": "test-gravity-segregation.msh",
     "Dimension": 2,
     "Domains": [
         {
             "name": "dom",
             "matid": 1,
-            "K": 4.93e-10,
+            "K": 1.83e-5,
             "phi": 0.3
         }
     ],
@@ -14,16 +14,16 @@
         {
             "name": "bottom",
             "matid": 2,
-            "type": 1, // imposed flux
+            "type": 0, // imposed pressure
             "value": 0.0,
             "functionID": 0,
-            "ExternalSaturation": 1.0,
+            "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
         },
         {
             "name": "right",
             "matid": 3,
-            "type": 1, // imposed flux
+            "type": 0, // imposed pressure
             "value": 0.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
@@ -33,15 +33,15 @@
             "name": "top",
             "matid": 4,
             "type": 0, // imposed pressure
-            "value": 100.0e3,
-            "functionID": 2,
+            "value": 0.0,
+            "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
         },
         {
             "name": "left",
             "matid": 5,
-            "type": 1, // imposed flux
+            "type": 0, // imposed pressure
             "value": 0.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
@@ -49,17 +49,17 @@
         }
     ],
     "Numerics": {
-        "AnalysisType": 0, //0: Coupled, 1: Darcy, 2: Transport
+        "AnalysisType": 2, //0: Coupled, 1: Darcy, 2: Transport
         "FluxOrder": 1,
-        "DeltaT": 0.01,
-        "NSteps": 400,
+        "DeltaT": 500.0,
+        "NSteps": 2,
         "Gravity": [
             0.0,
-            0.0,
+            -10.0,
             0.0
         ],
         "IsAxisymmetric": false,
-        "IsLinearTrace": false,
+        "IsLinearTrace": true,
         "FourApproxSpaces": true,
         "NThreadsDarcy": 0,
         "MaxIterSFI": 1,
@@ -72,28 +72,28 @@
         "CorrTolTransport": 1.0e-6
     },
     "FluidProperties": {
-        "WaterDensity": 1000.0,
-        "WaterViscosity": 1.0e-3,
+        "WaterDensity": 1.0,
+        "WaterViscosity": 1.0,
         "WaterCompressibility": 0.0,
-        "GasDensity": 1.25,
-        "GasViscosity": 1.8e-5,
-        "GasCompressibility": 1.0e-5,
+        "GasDensity": 1.25e-3,
+        "GasViscosity": 1.83e-2,
+        "GasCompressibility": 0.0,
         "DensityModel": 0, // 0: Linear, 1: Exponential
-        "ReferencePressure": 100.0e3
+        "ReferencePressure": 0.0
     },
     "PetroPhysics": {
-        "KrModel": 0, // 0: Linear, 1: Quadratic
+        "KrModel": 1, // 0: Linear, 1: Quadratic
         "Swr": 0.0, // Residual water saturation
         "Sgr": 0.0 // Residual oil saturation
     },
     "ReservoirProperties": {
         "s0": {
-            "functionType": 0, //constant saturation at t=0
-            "value": 0.0 //This variable plays different roles according to the functionType
+            "functionType": 2, //piece-wise saturation at t=0
+            "value": 5.0 //height of the interface between the fluids at t=0
         },
         "p0": {
-            "functionType": 1, //constant pressure at t=0
-            "value": 100.0e3 //This variable plays different roles according to the functionType
+            "functionType": 0, //constant pressure at t=0
+            "value": 0.0 //This variable plays different roles according to the functionType
         }
     },
     "PostProcess": {

@@ -42,17 +42,17 @@
             "name": "left",
             "matid": 5,
             "type": 0, // imposed pressure
-            "value": 10.0,
+            "value": 1.0,
             "functionID": 0,
             "ExternalSaturation": 1.0,
             "SaturationFunctionID": 0
         }
     ],
     "Numerics": {
-        "AnalysisType": 1, //0: Darcy, 1: Transport, 2: Coupled
+        "AnalysisType": 2, //0: Coupled, 1: Darcy, 2: Transport
         "FluxOrder": 1,
-        "DeltaT": 0.001,
-        "NSteps": 10,
+        "DeltaT": 0.0025,
+        "NSteps": 400,
         "Gravity": [
             0.0,
             0.0,
@@ -73,16 +73,16 @@
     },
     "FluidProperties": {
         "WaterDensity": 1.0,
-        "WaterViscosity": 1.0,
+        "WaterViscosity": 0.001,
         "WaterCompressibility": 0.0,
-        "GasDensity": 1.25e-3,
-        "GasViscosity": 1.83e-2,
+        "GasDensity": 1.0,
+        "GasViscosity": 1.83e-5,
         "GasCompressibility": 0.0,
         "DensityModel": 0, // 0: Linear, 1: Exponential
         "ReferencePressure": 0.0
     },
     "PetroPhysics": {
-        "KrModel": 0, // 0: Linear, 1: Quadratic
+        "KrModel": 1, // 0: Linear, 1: Quadratic
         "Swr": 0.0, // Residual water saturation
         "Sgr": 0.0 // Residual oil saturation
     },

@@ -87,6 +87,12 @@ void TSFTransportAnalysis::RunTimeStep(std::ostream &out) {
   TPZFMatrix<STATE> sol = Solution();
   for (fKiteration = 0; fKiteration < matIter; fKiteration++) {
     Assemble();
+    auto matrix = MatrixSolver<REAL>().Matrix();
+    auto rhs = Rhs();
+    {
+      matrix->Print("Matrix: ", out, EMathematicaInput);
+      rhs.Print("RHS: ", out, EMathematicaInput);
+    }
     // Check residual convergence
     if (fKiteration > 0) {
       TPZFMatrix<STATE> &rhs = Rhs();

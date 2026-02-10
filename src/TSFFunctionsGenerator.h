@@ -133,12 +133,11 @@ public:
       };
     } break;
     case ES0FunctionType::EPiecewiseFunction: {
-      return [](const TPZVec<REAL> &pt) -> REAL {
+      REAL h = fVal;
+      return [h](const TPZVec<REAL> &pt) -> REAL {
         REAL y, s;
         y = pt[1];
-        if (y < 0.3) {
-          s = 1.0;
-        } else if (y >= 0.3 && y < 0.7) {
+        if (y < h) {
           s = 0.0;
         } else {
           s = 1.0;

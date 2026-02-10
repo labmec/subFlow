@@ -5,9 +5,9 @@ Point(1) = {0.0, 0.0, 0.0, 1.0};
 //+
 Point(2) = {1.0, 0.0, 0.0, 1.0};
 //+
-Point(3) = {1.0, 1.0, 0.0, 1.0};
+Point(3) = {1.0, 10.0, 0.0, 1.0};
 //+
-Point(4) = {0.0, 1.0, 0.0, 1.0};
+Point(4) = {0.0, 10.0, 0.0, 1.0};
 //+
 Line(1) = {1, 2};
 //+
@@ -35,6 +35,6 @@ Transfinite Surface {1};
 //+
 Transfinite Curve {4, 2} = 11 Using Progression 1;
 //+
-Transfinite Curve {3, 1} = 51 Using Progression 1;
+Transfinite Curve {3, 1} = 2 Using Progression 1;
 //+
 Recombine Surface {1};
