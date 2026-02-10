@@ -96,13 +96,13 @@ void TSFAlgebraicTransport::TCellData::UpdateFractionalFlowsAndLambda(int krMode
   for (int ivol = 0; ivol < nvols; ivol++) {
 
     REAL sw = this->fSaturation[ivol];
-    REAL rhow = this->fDensityWater[ivol];
-    REAL rhoo = this->fDensityGas[ivol];
-    auto fwfvalderiv = fwfunc(sw, rhow, rhoo);
-    auto fgvalderiv = fgfunc(sw, rhow, rhoo);
-    auto lambdaWvalderiv = lambdaWfunc(sw, rhow);
-    auto lambdaGvalderiv = lambdaGfunc(sw, rhoo);
-    auto lambdaTotalvalderiv = lambdaTotalfunc(sw, rhow, rhoo);
+    REAL bw = this->fVolumeFactorWater[ivol];
+    REAL bg = this->fVolumeFactorGas[ivol];
+    auto fwfvalderiv = fwfunc(sw, bw, bg);
+    auto fgvalderiv = fgfunc(sw, bw, bg);
+    auto lambdaWvalderiv = lambdaWfunc(sw, bw);
+    auto lambdaGvalderiv = lambdaGfunc(sw, bg);
+    auto lambdaTotalvalderiv = lambdaTotalfunc(sw, bw, bg);
     this->fWaterfractionalflow[ivol] = std::get<0>(fwfvalderiv);
     this->fDerivativeWfractionalflow[ivol] = std::get<1>(fwfvalderiv);
     this->fGasfractionalflow[ivol] = std::get<0>(fgvalderiv);
@@ -257,7 +257,7 @@ void TSFAlgebraicTransport::Contribute(int cellId, TPZFMatrix<REAL> &ek, TPZFMat
 #ifdef PZDEBUG
   if (std::abs(phi) < 1e-12) DebugStop();
 #endif
-  ef(0) = fCellsData.fVolume[cellId] * phi * ((sat / bw) - (satLast / bwLast)); // bw is constant
+  ef(0) = -fCellsData.fVolume[cellId] * phi * ((sat / bw) - (satLast / bwLast)); // bw is constant
   ek(0, 0) = fCellsData.fVolume[cellId] * phi / bw;
 }
 
@@ -270,7 +270,7 @@ void TSFAlgebraicTransport::ContributeResidual(int cellId, TPZFMatrix<REAL> &ef)
 #ifdef PZDEBUG
   if (std::abs(phi) < 1e-12) DebugStop();
 #endif
-  ef(0) = fCellsData.fVolume[cellId] * phi * ((sat / bw) - (satLast / bwLast)); // bw is constant
+  ef(0) = -fCellsData.fVolume[cellId] * phi * ((sat / bw) - (satLast / bwLast)); // bw is constant
 }
 
 void TSFAlgebraicTransport::ContributeInterface(int interfaceId, int interfaceMatId, TPZFMatrix<REAL> &ek, TPZFMatrix<REAL> &ef) {
@@ -290,8 +290,8 @@ void TSFAlgebraicTransport::ContributeInterface(int interfaceId, int interfaceMa
 
   REAL dt = fCellsData.fSimData->fTNumerics.fDt;
 
-  ef(0) = +1.0 * (beta * fw_L + (1.0 - beta) * fw_R) * fluxint * dt;
-  ef(1) = -1.0 * (beta * fw_L + (1.0 - beta) * fw_R) * fluxint * dt;
+  ef(0) = -1.0 * (beta * fw_L + (1.0 - beta) * fw_R) * fluxint * dt;
+  ef(1) = +1.0 * (beta * fw_L + (1.0 - beta) * fw_R) * fluxint * dt;
 
   ek(0, 0) = +1.0 * dfwSw_L * beta * fluxint * dt;
   ek(0, 1) = +1.0 * dfwSw_R * (1.0 - beta) * fluxint * dt;
@@ -335,8 +335,8 @@ void TSFAlgebraicTransport::ContributeInterface(int interfaceId, int interfaceMa
   REAL dflambdaStar_dswL = beta * dlambda_L;
   REAL dflambdaStar_dswR = (1.0 - beta) * dlambda_R;
 
-  ef(0) += fstar * lambda_star * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt;
-  ef(1) += -fstar * lambda_star * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt;
+  ef(0) += -fstar * lambda_star * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt;
+  ef(1) += +fstar * lambda_star * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt;
 
   ek(0, 0) += (dfstar_dswL * lambda_star + fstar * dflambdaStar_dswL) * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt;
   ek(0, 1) += (dfstar_dswR * lambda_star + fstar * dflambdaStar_dswR) * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt;
@@ -358,8 +358,8 @@ void TSFAlgebraicTransport::ContributeInterfaceResidual(int interfaceId, int int
     beta = 1.0;
   }
 
-  ef(0) = +1.0 * (beta * fw_L + (1.0 - beta) * fw_R) * fluxint * dt;
-  ef(1) = -1.0 * (beta * fw_L + (1.0 - beta) * fw_R) * fluxint * dt;
+  ef(0) = -1.0 * (beta * fw_L + (1.0 - beta) * fw_R) * fluxint * dt;
+  ef(1) = +1.0 * (beta * fw_L + (1.0 - beta) * fw_R) * fluxint * dt;
 
   // IHU
   REAL rhow_L = fCellsData.fDensityWater[lr_index.first];
@@ -390,8 +390,8 @@ void TSFAlgebraicTransport::ContributeInterfaceResidual(int interfaceId, int int
   REAL fstar = beta * fw_L * fg_R + (1.0 - beta) * fw_R * fg_L;
   REAL lambda_star = beta * lambda_L + (1.0 - beta) * lambda_R;
 
-  ef(0) += fstar * lambda_star * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt;
-  ef(1) += -fstar * lambda_star * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt;
+  ef(0) += -fstar * lambda_star * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt;
+  ef(1) += +fstar * lambda_star * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt;
 }
 
 void TSFAlgebraicTransport::ContributeBC(int bcId, int bcMatId, TPZFMatrix<REAL> &ek, TPZFMatrix<REAL> &ef) {
@@ -411,11 +411,11 @@ void TSFAlgebraicTransport::ContributeBC(int bcId, int bcMatId, TPZFMatrix<REAL>
     int krmodel = fCellsData.fSimData->fTPetroPhysics.fKrModel;
     auto fwf = fCellsData.fSimData->fTPetroPhysics.fFw[krmodel];
     REAL fw_inlet = std::get<0>(fwf(s_inlet, bw, bg)); // not sure about passing bw and bg related to the left cell. Should it be computed according to injection pressure?
-    ef(0, 0) = fw_inlet * fluxint * dt;
+    ef(0, 0) = -fw_inlet * fluxint * dt;
   } else if (!noflux) { // outlet
     REAL fw_L = fCellsData.fWaterfractionalflow[lr_index.first];
     REAL dfwSw_L = fCellsData.fDerivativeWfractionalflow[lr_index.first];
-    ef(0, 0) = fw_L * fluxint * dt;
+    ef(0, 0) = -fw_L * fluxint * dt;
     ek(0, 0) = dfwSw_L * fluxint * dt;
   }
 }
