@@ -107,6 +107,8 @@ void TSFTransportAnalysis::RunTimeStep(std::ostream &out) {
     corr_norm = Norm(dsol);
     sol += dsol;
     cmesh->LoadSolution(sol);
+    fAlgebraicTransport.fCellsData.UpdateSaturations(sol);
+    fAlgebraicTransport.fCellsData.UpdateFractionalFlowsAndLambda(fSimData->fTPetroPhysics.fKrModel);
   }
 
   if (!converged) {
