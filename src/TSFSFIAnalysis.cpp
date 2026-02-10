@@ -46,14 +46,14 @@ void TSFSFIAnalysis::Initialize() {
 void TSFSFIAnalysis::PostProcessTimeStep(const int type, const int dim, int step) {
   auto start_time = std::chrono::steady_clock::now();
 
-  if (type == 0) {
+  if (type == 0) { // Both
     fDarcyAnalysis.PostProcessTimeStep(dim, step);
     fTransportAnalysis.PostProcessTimeStep(dim, step);
   }
-  if (type == 1) {
+  if (type == 1) { // Darcy
     fDarcyAnalysis.PostProcessTimeStep(dim, step);
   }
-  if (type == 2) {
+  if (type == 2) { // Transport
     fTransportAnalysis.PostProcessTimeStep(dim, step);
   }
 
@@ -122,7 +122,7 @@ void TSFSFIAnalysis::RunTimeStep(std::ostream &out) {
       out << "Solving Darcy Problem..." << std::endl;
       fDarcyAnalysis.RunTimeStep(out);
       TransferDarcyToTransport(); // Update transport problem with new densities and fluxes
-      if (fSimData->fTNumerics.fAnalysisType == 1) fShouldSolveDarcy = false;
+      if (fSimData->fTNumerics.fAnalysisType == 2) fShouldSolveDarcy = false;
     }
 
     // Solve Transport Problem

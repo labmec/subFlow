@@ -392,7 +392,7 @@ public:
     REAL fDt;
 
     /**
-     * @brief Flag to indicate the analysis type: 1 - only Darcy, 2 - only transport, 3 - coupled
+     * @brief Flag to indicate the analysis type: 0 - coupled, 1 - only Darcy, 2 - only transport
      */
     int fAnalysisType;
 
@@ -483,7 +483,7 @@ public:
     /** @brief Default constructor */
     TNumerics() {
       fDt = 0.0;
-      fAnalysisType = 3;
+      fAnalysisType = 2;
       fFluxOrder = 1;
       fResTolDarcy = 1.0e-4;
       fResTolTransport = 1.0e-7;

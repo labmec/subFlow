@@ -255,12 +255,10 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     }
     REAL external_saturation = 0.0;
     int saturation_functionID = 0;
-    if (input["Numerics"]["AnalysisType"] != 0) { // If transport problem is being solved
-      if (bc.find("ExternalSaturation") == bc.end()) DebugStop();
-      external_saturation = bc["ExternalSaturation"];
-      if (bc.find("SaturationFunctionID") != bc.end()) {
-        saturation_functionID = bc["SaturationFunctionID"];
-      }
+    if (bc.find("ExternalSaturation") == bc.end()) DebugStop();
+    external_saturation = bc["ExternalSaturation"];
+    if (bc.find("SaturationFunctionID") != bc.end()) {
+      saturation_functionID = bc["SaturationFunctionID"];
     }
     fTBoundaryConditions.fDomainNameAndMatId[name] = matid;
     if (BCDarcyMatIdToTypeValue.find(matid) != BCDarcyMatIdToTypeValue.end()) DebugStop();
@@ -426,8 +424,8 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     }
     if (postprocess.find("ProblemType") != postprocess.end()) {
       fTPostProcess.fProblemType = postprocess["ProblemType"];
-      if (fTNumerics.fIsLinearTrace)
-        fTPostProcess.fProblemType = 2; // In case of linear trace, Darcy is only post processed once
+    } else if (fTNumerics.fAnalysisType == 1) {
+      fTPostProcess.fProblemType = 2; // If not specified, but transport problem is being solved, set it to only postprocess transport files
     }
     if (postprocess.find("NThreads") != postprocess.end()) {
       fTPostProcess.fNThreads = postprocess["NThreads"];
