@@ -51,8 +51,8 @@
     "Numerics": {
         "AnalysisType": 2, //0: Coupled, 1: Darcy, 2: Transport
         "FluxOrder": 1,
-        "DeltaT": 500.0,
-        "NSteps": 2,
+        "DeltaT": 0.0001,
+        "NSteps": 5000,
         "Gravity": [
             0.0,
             -10.0,
@@ -72,11 +72,11 @@
         "CorrTolTransport": 1.0e-6
     },
     "FluidProperties": {
-        "WaterDensity": 1.0,
-        "WaterViscosity": 1.0,
+        "WaterDensity": 1000.0,
+        "WaterViscosity": 1.0e-3,
         "WaterCompressibility": 0.0,
-        "GasDensity": 1.25e-3,
-        "GasViscosity": 1.83e-2,
+        "GasDensity": 1.25,
+        "GasViscosity": 1.83e-5,
         "GasCompressibility": 0.0,
         "DensityModel": 0, // 0: Linear, 1: Exponential
         "ReferencePressure": 0.0
