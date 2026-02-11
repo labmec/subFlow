@@ -9,3 +9,6 @@ target_link_libraries(test-unsaturated-reservoir-vacuum PRIVATE subFlow_lib)
 
 add_executable(test-gravity-segregation test-gravity-segregation.cpp)
 target_link_libraries(test-gravity-segregation PRIVATE subFlow_lib)
+
+add_executable(radial-filtration radial-filtration.cpp)
+target_link_libraries(radial-filtration PRIVATE subFlow_lib)
