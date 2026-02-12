@@ -127,7 +127,7 @@ void TSFSFIAnalysis::RunTimeStep(std::ostream &out) {
 
     // Solve Transport Problem
     out << "Solving Transport Problem..." << std::endl;
-    fTransportAnalysis.RunTimeStep(out);
+    if (fSimData->fTNumerics.fAnalysisType != 1) fTransportAnalysis.RunTimeStep(out);
 
     // Computing norms
     darcy_norm = Norm(fDarcySolution - fDarcyAnalysis.Solution());

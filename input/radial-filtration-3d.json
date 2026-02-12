@@ -1,7 +1,7 @@
 {
     "UseGMsh": true,
-    "MshFile": "radial-filtration.msh",
-    "Dimension": 2,
+    "MshFile": "radial-filtration-3d.msh",
+    "Dimension": 3,
     "Domains": [
         {
             "name": "dom",
@@ -58,7 +58,7 @@
             0.0,
             0.0
         ],
-        "IsAxisymmetric": true,
+        "IsAxisymmetric": false,
         "IsLinearTrace": false,
         "FourApproxSpaces": true,
         "NThreadsDarcy": 0,

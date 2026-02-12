@@ -12,3 +12,6 @@ target_link_libraries(test-gravity-segregation PRIVATE subFlow_lib)
 
 add_executable(radial-filtration radial-filtration.cpp)
 target_link_libraries(radial-filtration PRIVATE subFlow_lib)
+
+add_executable(radial-filtration-3d radial-filtration-3d.cpp)
+target_link_libraries(radial-filtration-3d PRIVATE subFlow_lib)

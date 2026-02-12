@@ -305,6 +305,12 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     if (numerics.find("IsAxisymmetric") != numerics.end()) {
       fTNumerics.fIsAxisymmetric = numerics["IsAxisymmetric"];
     }
+#ifdef PZDEBUG
+    if (fTNumerics.fIsAxisymmetric && fTGeometry.fDimension != 2) {
+      std::cout << "Trying to run an axisymmetric simulation with a non-2D geometry." << std::endl;
+      DebugStop();
+    }
+#endif
     if (numerics.find("IsLinearTrace") != numerics.end()) {
       fTNumerics.fIsLinearTrace = numerics["IsLinearTrace"];
     }
