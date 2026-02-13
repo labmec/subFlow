@@ -78,6 +78,7 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
   PostProcessTimeStep(fSimData->fTPostProcess.fProblemTypeInit, dim, 0);
 
   // Time stepping loop
+  int pos = 0;
   for (int tstep = 1; tstep <= nsteps; tstep++) {
     out << "\n=================================================================" << std::endl;
     out << "-------------------------- TIME Step " << tstep << " --------------------------" << std::endl;
@@ -93,7 +94,7 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
       nextPostProcessTime = postProcessTimes[tstep];
     } else if (time >= nextPostProcessTime - 1.0e-8) {
       PostProcessTimeStep(fSimData->fTPostProcess.fProblemType, dim, tstep);
-      nextPostProcessTime = postProcessTimes[tstep];
+      nextPostProcessTime = postProcessTimes[pos++];
     }
     // Check Mass Balance
     fTransportAnalysis.fAlgebraicTransport.CheckMassBalance(time, out);
