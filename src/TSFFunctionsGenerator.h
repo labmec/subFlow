@@ -20,7 +20,8 @@ public:
                                EConstantFunction = 1,
                                EPiecewiseFunction = 2,
                                ECircleLevelSetFunction = 4,
-                               ERandomCirclesFunction = 5 };
+                               ERandomCirclesFunction = 5,
+                               EThreeLayersFunction = 6 };
 
   enum class EDarcyBCFunctionType { ENone = 0,
                                     EHydrostaticPressure = 1,
@@ -190,6 +191,21 @@ public:
           }
         }
         return 1.0;
+      };
+    } break;
+    case ES0FunctionType::EThreeLayersFunction: {
+      REAL h = fVal;
+      return [h](const TPZVec<REAL> &pt) -> REAL {
+        REAL y, s;
+        y = pt[1];
+        if (y < h / 3.0) {
+          s = 1.0;
+        } else if (y < 2.0 * h / 3.0) {
+          s = 0.0;
+        } else {
+          s = 1.0;
+        }
+        return s;
       };
     } break;
     case ES0FunctionType::ENone: {
