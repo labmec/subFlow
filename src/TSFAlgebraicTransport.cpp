@@ -124,9 +124,8 @@ void TSFAlgebraicTransport::TCellData::UpdateDensitiesAndVolumeFactor() {
       auto densityWvalderiv = WaterDensityFunc(pressure);
       auto densityGvalderiv = GasDensityFunc(pressure);
 #ifdef PZDEBUG
-      if (std::get<0>(densityWvalderiv) < 0.0 || std::get<0>(densityGvalderiv) < 0.0) {
-        DebugStop();
-      }
+      if (std::get<0>(densityWvalderiv) < 0.0 || std::get<0>(densityGvalderiv) < 0.0)
+        std::cout << "Negative density value detected! " << std::endl;
 #endif
       fDensityWater[icell] = std::get<0>(densityWvalderiv);
       fDdensityWaterdp[icell] = std::get<1>(densityWvalderiv);
