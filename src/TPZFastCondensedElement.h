@@ -183,5 +183,5 @@ public:
 
   void SetPermTensorAndInv(TPZFNMatrix<9, REAL> &PermeabilityTensor, TPZFNMatrix<9, REAL> &InvPerm);
   TPZFMatrix<REAL> &GetPermTensor();
-  void SetConnectIndex(int inode, int64_t index);
+  void SetConnectIndex(int inode, int64_t index) override;
 };
