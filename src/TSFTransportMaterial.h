@@ -56,7 +56,7 @@ public:
 
   virtual void FillDataRequirementsInterface(TPZMaterialData &data) const override;
 
-  virtual void FillDataRequirementsInterface(TPZMaterialDataT<STATE> &data, std::map<int, TPZMaterialDataT<STATE>> &datavec_left, std::map<int, TPZMaterialDataT<STATE>> &datavec_right);
+  virtual void FillDataRequirementsInterface(TPZMaterialDataT<STATE> &data, std::map<int, TPZMaterialDataT<STATE>> &datavec_left, std::map<int, TPZMaterialDataT<STATE>> &datavec_right) override;
 
   /** @brief Returns the name of the material */
   virtual std::string Name() const override {
@@ -64,21 +64,21 @@ public:
   }
 
   /** @brief Returns the integrable dimension of the material */
-  int Dimension() const { return m_dimension; }
+  int Dimension() const override { return m_dimension; }
 
   /** @brief Sets material dimension */
   void SetDimension(int dim) { m_dimension = dim; }
 
   /** @brief Returns the number of state variables associated with the material */
-  int NStateVariables() const { return 1; } // Deprecated, must to be removed
+  int NStateVariables() const override { return 1; } // Deprecated, must to be removed
 
   /** @brief Returns material copied form this object */
   virtual TPZMaterial *NewMaterial() const override {
     return new TSFTransportMaterial(*this);
   }
-  virtual void Contribute(const TPZMaterialDataT<STATE> &data, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef) {
+  virtual void Contribute(const TPZMaterialDataT<STATE> &data, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef) override{
   }
-  virtual void ContributeBC(const TPZMaterialDataT<STATE> &data, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) {
+  virtual void ContributeBC(const TPZMaterialDataT<STATE> &data, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) override {
   }
   /** @brief Print out the data associated with the material */
   void Print(std::ostream &out = std::cout) const override;
@@ -94,7 +94,7 @@ public:
   /** @brief Returns the solution associated with the var index */
   void Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec, int var, TPZVec<REAL> &Solout) override;
 
-  void Solution(const TPZMaterialDataT<REAL> &data, int var, TPZVec<REAL> &sol);
+  void Solution(const TPZMaterialDataT<REAL> &data, int var, TPZVec<REAL> &sol) override;
 
   void Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef) override;
 
@@ -104,7 +104,7 @@ public:
 
   void ContributeBCInterface(const TPZMaterialDataT<STATE> &data, const std::map<int, TPZMaterialDataT<STATE>> &datavecleft, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) override;
 
-  virtual void ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) {
+  virtual void ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) override {
 
     DebugStop();
   }
