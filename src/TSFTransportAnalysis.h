@@ -9,6 +9,8 @@
 #ifdef PZ_USING_MKL
 #include "TPZSpStructMatrix.h"
 #include "TPZYSMPPardiso.h"
+#else
+#include "TPZSkylineNSymStructMatrix.h"
 #endif
 #include "TSFAlgebraicTransport.h"
 #include "TSFProblemData.h"
