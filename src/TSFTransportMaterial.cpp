@@ -365,7 +365,7 @@ void TSFTransportMaterial::Solution(const TPZMaterialDataT<REAL> &data, int var,
 
   REAL sw = data.sol[0][0];
 
-  sol.Resize(this->NSolutionVariables(var));
+  // sol.Resize(this->NSolutionVariables(var));
 
   switch (var) {
   case 0: {
