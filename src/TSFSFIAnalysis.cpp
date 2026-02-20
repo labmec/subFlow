@@ -50,11 +50,15 @@ void TSFSFIAnalysis::PostProcessTimeStep(const int type, const int dim, int step
     fDarcyAnalysis.PostProcessTimeStep(dim, step);
     fTransportAnalysis.PostProcessTimeStep(dim, step);
   }
-  if (type == 1) { // Darcy
+  else if (type == 1) { // Darcy
     fDarcyAnalysis.PostProcessTimeStep(dim, step);
   }
-  if (type == 2) { // Transport
+  else if (type == 2) { // Transport
     fTransportAnalysis.PostProcessTimeStep(dim, step);
+  }
+  else {
+    std::cout << "ERROR: Unknown problem type for post-processing: " << type << std::endl;
+    DebugStop();
   }
 
   auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count() / 1000.;
@@ -91,7 +95,6 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
     // Post-processing
     if (tstep == 1) {
       PostProcessTimeStep(fSimData->fTPostProcess.fProblemTypeInit, dim, tstep);
-      nextPostProcessTime = postProcessTimes[tstep];
     } else if (time >= nextPostProcessTime - 1.0e-8) {
       PostProcessTimeStep(fSimData->fTPostProcess.fProblemType, dim, tstep);
       nextPostProcessTime = postProcessTimes[pos++];
