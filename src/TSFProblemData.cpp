@@ -431,7 +431,9 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     if (postprocess.find("ProblemType") != postprocess.end()) {
       fTPostProcess.fProblemType = postprocess["ProblemType"];
     } else if (fTNumerics.fAnalysisType == 1) {
-      fTPostProcess.fProblemType = 2; // If not specified, but transport problem is being solved, set it to only postprocess transport files
+      fTPostProcess.fProblemType = 1; // If not specified, but transport problem is being solved, set it to only postprocess transport files
+    } else if (fTNumerics.fAnalysisType == 2) {
+      fTPostProcess.fProblemType = 2; // If not specified, but only Darcy problem is being solved, set it to only postprocess darcy files
     }
     if (postprocess.find("NThreads") != postprocess.end()) {
       fTPostProcess.fNThreads = postprocess["NThreads"];
