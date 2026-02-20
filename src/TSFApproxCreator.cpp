@@ -37,6 +37,11 @@ void TSFApproxCreator::AddDarcyMaterials() {
     REAL permeability = fSimData->fTReservoirProperties.fPorosityAndPermeability[matId].second;
     matDarcy->SetConstantPermeability(permeability);
     matDarcy->SetFourSpaces(fSimData->fTNumerics.fFourApproxSpaces);
+    TPZFNMatrix<3, REAL> gravity(3, 1);
+    for (int i = 0; i < 3; i++) {
+      gravity(i, 0) = fSimData->fTNumerics.fGravity[i];
+    }
+    matDarcy->SetGravity(gravity);
     TPZHDivApproxCreator::InsertMaterialObject(matDarcy);
   }
 
