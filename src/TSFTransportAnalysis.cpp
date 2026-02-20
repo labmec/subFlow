@@ -4,6 +4,7 @@
 
 #include "TSFTransportAnalysis.h"
 #include "TPZVTKGenerator.h"
+#include <cmath>
 
 TSFTransportAnalysis::TSFTransportAnalysis() : TPZLinearAnalysis() {}
 
@@ -75,8 +76,17 @@ void TSFTransportAnalysis::Initialize() {
 }
 
 void TSFTransportAnalysis::RunTimeStep(std::ostream &out) {
-  TPZCompMesh *cmesh = Mesh();
+  auto SetNearZeroEntriesToZero = [](TPZFMatrix<REAL> &matrix) {
+    // this is to avoid round-off errors that can compromise the vtk export
+    const int64_t nrows = matrix.Rows();
+    for (int64_t i = 0; i < nrows; i++) {
+      if (IsZero(matrix(i, 0))) {
+        matrix(i, 0) = 0.0;
+      }
+    }
+  };
 
+  TPZCompMesh *cmesh = Mesh();
   int matIter = fSimData->fTNumerics.fMaxIterTransport;
   REAL res_norm = 1.0;
   REAL corr_norm = 1.0;
@@ -109,9 +119,10 @@ void TSFTransportAnalysis::RunTimeStep(std::ostream &out) {
       }
     }
     Solve();
-    TPZFMatrix<STATE> dsol = Solution();
+    TPZFMatrix<STATE>& dsol = Solution();
     corr_norm = Norm(dsol);
     sol += dsol;
+    SetNearZeroEntriesToZero(sol);
     cmesh->LoadSolution(sol);
     fAlgebraicTransport.fCellsData.UpdateSaturations(sol);
     fAlgebraicTransport.fCellsData.UpdateFractionalFlowsAndLambda(fSimData->fTPetroPhysics.fKrModel);

@@ -52,18 +52,18 @@
         "AnalysisType": 0, //0: Coupled, 1: Darcy, 2: Transport
         "FluxOrder": 1,
         "DeltaT": 0.01,
-        "NSteps": 10000,
+        "NSteps": 1000,
         "Gravity": [
             0.0,
-            -9.81,
+            -10.0,
             0.0
         ],
         "IsAxisymmetric": false,
         "IsLinearTrace": false,
         "FourApproxSpaces": true,
         "NThreadsDarcy": 0,
-        "MaxIterSFI": 1,
-        "TolSFI": 1.0e-6,
+        "MaxIterSFI": 10,
+        "TolSFI": 1.0e-4,
         "MaxIterDarcy": 10,
         "ResTolDarcy": 1.0e-6,
         "CorrTolDarcy": 1.0e-6,
@@ -97,7 +97,7 @@
         }
     },
     "PostProcess": {
-        "PostProcessFrequency": 10,
+        "PostProcessFrequency": 1,
         "NThreads": 0,
         "VTKResolution": 0
     }

@@ -79,7 +79,7 @@ void TSFDarcyAnalysis::RunTimeStep(std::ostream &out) {
       }
     }
     Solve();
-    TPZFMatrix<STATE> dsol = Solution();
+    TPZFMatrix<STATE> &dsol = Solution();
     corr_norm = Norm(dsol);
     sol += dsol;
     cmesh->LoadSolution(sol);
