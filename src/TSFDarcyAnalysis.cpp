@@ -197,6 +197,15 @@ void TSFDarcyAnalysis::SetInitialBCValue(std::set<int> &neumannMatids) {
 }
 
 void TSFDarcyAnalysis::SetInitialSolution() {
+  if (fSimData->fTReservoirProperties.fP0Func) {
+    SetInitialSolutionFromFunc();
+  } else if (!fSimData->fTReservoirProperties.fSol0FileName.empty()) {
+    SetInitialSolutionFromFile(fSimData->fTReservoirProperties.fSol0FileName);
+  }
+}
+
+void TSFDarcyAnalysis::SetInitialSolutionFromFunc() {
+  // This method sets only the initial pressure from the p0 function.
   if (!fSimData->fTReservoirProperties.fP0Func) return;
   fCompMesh->LoadReferences();
   TPZFMatrix<STATE> &cmesh_sol = fCompMesh->Solution();
@@ -290,6 +299,77 @@ void TSFDarcyAnalysis::SetInitialSolution() {
   int cmesh_neq = fCompMesh->NEquations();
   TPZFMatrix<STATE> &sol = Solution();
   for (int i = 0; i < cmesh_neq; i++) {
+    sol.PutVal(i, 0, cmesh_sol.GetVal(i, 0));
+  }
+}
+
+void TSFDarcyAnalysis::SetInitialSolutionFromFile(const std::string &fileName) {
+  std::string inputFilePath = std::string(INPUTDIR) + "/" + fileName;
+  std::ifstream in(inputFilePath);
+  
+#ifdef PZDEBUG
+  if (!in.is_open()) {
+    std::cout << "Could not open Darcy initial solution file: " << fileName << std::endl;
+    DebugStop();
+  }
+#endif
+
+  std::string header;
+  std::getline(in, header);
+
+  const size_t openPos = header.find('(');
+  const size_t xPos = header.find('x', openPos == std::string::npos ? 0 : openPos + 1);
+  const size_t closePos = header.find(')', xPos == std::string::npos ? 0 : xPos + 1);
+
+#ifdef PZDEBUG
+  if (openPos == std::string::npos || xPos == std::string::npos || closePos == std::string::npos) {
+    std::cout << "Invalid Darcy solution header format in file: " << fileName << std::endl;
+    DebugStop();
+  }
+#endif
+
+  auto Trim = [](const std::string &text) {
+    const size_t first = text.find_first_not_of(" \t");
+    if (first == std::string::npos) return std::string();
+    const size_t last = text.find_last_not_of(" \t");
+    return text.substr(first, last - first + 1);
+  };
+
+  const int64_t nrows = std::stoll(Trim(header.substr(openPos + 1, xPos - openPos - 1)));
+  const int64_t ncols = std::stoll(Trim(header.substr(xPos + 1, closePos - xPos - 1)));
+
+  TPZFMatrix<STATE> file_solution(nrows, ncols, 0.0);
+  for (int64_t i = 0; i < nrows; i++) {
+    for (int64_t j = 0; j < ncols; j++) {
+      STATE val = 0.0;
+      in >> val;
+#ifdef PZDEBUG
+      if (!in) {
+        std::cout << "Invalid Darcy solution data in file: " << fileName << std::endl;
+        DebugStop();
+      }
+#endif
+      file_solution.PutVal(i, j, val);
+    }
+  }
+
+  TPZFMatrix<STATE> &cmesh_sol = fCompMesh->Solution();
+  const int64_t cmesh_neq = fCompMesh->NEquations();
+#ifdef PZDEBUG
+  if (ncols != 1 || nrows != cmesh_neq) {
+    std::cout << "Darcy initial solution size mismatch. File has (" << nrows << " x " << ncols << ") and cmesh requires (" << cmesh_neq << " x 1)." << std::endl;
+    DebugStop();
+  }
+#endif
+
+  for (int64_t i = 0; i < cmesh_neq; i++) {
+    cmesh_sol.PutVal(i, 0, file_solution.GetVal(i, 0));
+  }
+
+  fCompMesh->TransferMultiphysicsSolution();
+
+  TPZFMatrix<STATE> &sol = Solution();
+  for (int64_t i = 0; i < cmesh_neq; i++) {
     sol.PutVal(i, 0, cmesh_sol.GetVal(i, 0));
   }
 }

@@ -4,7 +4,7 @@
 
 #include "TSFTransportAnalysis.h"
 #include "TPZVTKGenerator.h"
-#include <cmath>
+#include "pzmanvector.h"
 
 TSFTransportAnalysis::TSFTransportAnalysis() : TPZLinearAnalysis() {}
 
@@ -292,8 +292,85 @@ void TSFTransportAnalysis::Solve() {
 }
 
 void TSFTransportAnalysis::SetInitialSaturation() {
+  if (fSimData->fTReservoirProperties.fS0Func) {
+    SetInitialSaturationFromFunc();
+  } else if (!fSimData->fTReservoirProperties.fS0FileName.empty()) {
+    SetInitialSaturationFromFile(fSimData->fTReservoirProperties.fS0FileName);
+  }
+}
+
+void TSFTransportAnalysis::SetInitialSaturationFromFunc() {
+  // In this case, the initial saturation has already been set in fCellsData by fS0Func during the TSFAlgebraicTransport initialization.
+  // We just need to copy it to the solution vector.
   TPZFMatrix<STATE> &sol = Solution();
   fAlgebraicTransport.fCellsData.UpdateSaturationsTo(sol);
+  fAlgebraicTransport.fCellsData.UpdateFractionalFlowsAndLambda(fSimData->fTPetroPhysics.fKrModel);
+  LoadSolution();
+}
+
+void TSFTransportAnalysis::SetInitialSaturationFromFile(const std::string &fileName) {
+  // In this case, we need to read the initial saturation from the file and set it in fCellsData and in the solution vector.
+  std::string inputFilePath = std::string(INPUTDIR) + "/" + fileName;
+  std::ifstream in(inputFilePath);
+
+#ifdef PZDEBUG
+  if (!in.is_open()) {
+    std::cout << "Could not open Transport initial solution file: " << fileName << std::endl;
+    DebugStop();
+  }
+#endif
+
+  std::string header;
+  std::getline(in, header);
+
+  const size_t openPos = header.find('(');
+  const size_t xPos = header.find('x', openPos == std::string::npos ? 0 : openPos + 1);
+  const size_t closePos = header.find(')', xPos == std::string::npos ? 0 : xPos + 1);
+
+#ifdef PZDEBUG
+  if (openPos == std::string::npos || xPos == std::string::npos || closePos == std::string::npos) {
+    std::cout << "Invalid Transport solution header format in file: " << fileName << std::endl;
+    DebugStop();
+  }
+#endif
+
+  auto Trim = [](const std::string &text) {
+    const size_t first = text.find_first_not_of(" \t");
+    if (first == std::string::npos) return std::string();
+    const size_t last = text.find_last_not_of(" \t");
+    return text.substr(first, last - first + 1);
+  };
+
+  const int64_t nrows = std::stoll(Trim(header.substr(openPos + 1, xPos - openPos - 1)));
+  const int64_t ncols = std::stoll(Trim(header.substr(xPos + 1, closePos - xPos - 1)));
+
+  TPZFMatrix<STATE> file_solution(nrows, ncols, 0.0);
+  for (int64_t i = 0; i < nrows; i++) {
+    for (int64_t j = 0; j < ncols; j++) {
+      STATE val = 0.0;
+      in >> val;
+#ifdef PZDEBUG
+      if (!in) {
+        std::cout << "Invalid Transport solution data in file: " << fileName << std::endl;
+        DebugStop();
+      }
+#endif
+      file_solution.PutVal(i, j, val);
+    }
+  }
+
+  const int64_t cmesh_neq = fCompMesh->NEquations();
+#ifdef PZDEBUG
+  if (ncols != 1 || nrows != cmesh_neq) {
+    std::cout << "Transport initial solution size mismatch. File has (" << nrows << " x " << ncols << ") and cmesh requires (" << cmesh_neq << " x 1)." << std::endl;
+    DebugStop();
+  }
+#endif
+
+  TPZFMatrix<STATE> &sol = Solution();
+  sol = file_solution;
+
+  fAlgebraicTransport.fCellsData.UpdateSaturations(sol);
   fAlgebraicTransport.fCellsData.UpdateFractionalFlowsAndLambda(fSimData->fTPetroPhysics.fKrModel);
   LoadSolution();
 }

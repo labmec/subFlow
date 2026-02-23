@@ -3,6 +3,7 @@
 //
 
 #include "TSFProblemData.h"
+#include <filesystem>
 
 TSFProblemData::TSFProblemData() : fTGeometry(), fTPetroPhysics(), fTFluidProperties(), fTReservoirProperties(), fTBoundaryConditions(), fTNumerics(), fTPostProcess() {}
 
@@ -390,24 +391,49 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     auto reservoir = input["ReservoirProperties"];
     if (reservoir.find("s0") != reservoir.end()) {
       auto s0 = reservoir["s0"];
-      TSFFunctionsGenerator::ES0FunctionType s0_functionType = s0["functionType"];
-      REAL constVal = s0["value"];
-      TSFFunctionsGenerator functionGen;
-      functionGen.SetS0FuncType(s0_functionType, constVal);
-      auto s0func = functionGen.CreateS0();
-      fTReservoirProperties.fS0Func = s0func;
+      if (s0.find("functionType") != s0.end()) {
+        TSFFunctionsGenerator::ES0FunctionType s0_functionType = s0["functionType"];
+        REAL constVal = 0.0;
+        if (s0.find("value") != s0.end()) {
+          constVal = s0["value"];
+        }
+        TSFFunctionsGenerator functionGen;
+        functionGen.SetS0FuncType(s0_functionType, constVal);
+        auto s0func = functionGen.CreateS0();
+        fTReservoirProperties.fS0Func = s0func;
+      }
+
+      if (s0.find("FileName") != s0.end()) {
+        if (s0.find("functionType") != s0.end() && s0["functionType"] != 0) {
+          std::cout << "ERROR: Both functionType and FileName are specified for Transport initial solution." << std::endl;
+          DebugStop();
+        }
+        fTReservoirProperties.fS0FileName = s0["FileName"];
+      }
 
       // PLEASE NOTE: The permeability and porosity functions can also be set here in a similar way
       // IMPLEMENT ME!
     }
     if (reservoir.find("p0") != reservoir.end()) {
       auto p0 = reservoir["p0"];
-      TSFFunctionsGenerator::EP0FunctionType p0_functionType = p0["functionType"];
-      REAL constVal = p0["value"];
-      TSFFunctionsGenerator functionGen;
-      functionGen.SetP0FuncType(p0_functionType, constVal);
-      auto p0func = functionGen.CreateP0();
-      fTReservoirProperties.fP0Func = p0func;
+      if (p0.find("functionType") != p0.end()) {
+        TSFFunctionsGenerator::EP0FunctionType p0_functionType = p0["functionType"];
+        REAL constVal = 0.0;
+        if (p0.find("value") != p0.end()) {
+          constVal = p0["value"];
+        }
+        TSFFunctionsGenerator functionGen;
+        functionGen.SetP0FuncType(p0_functionType, constVal);
+        auto p0func = functionGen.CreateP0();
+        fTReservoirProperties.fP0Func = p0func;
+      }
+      if (p0.find("FileName") != p0.end()) {
+        if (p0.find("functionType") != p0.end() && p0["functionType"] != 0) {
+          std::cout << "ERROR: Both functionType and FileName are specified for Darcy initial solution." << std::endl;
+          DebugStop();
+        } 
+        fTReservoirProperties.fSol0FileName = p0["FileName"];
+      }
     }
   }
 
@@ -473,4 +499,8 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     j += freq;
   }
   fTPostProcess.fVecReportingTimes = reporting_times;
+
+  std::filesystem::path output_dir = std::filesystem::path(filename).stem().string() + "-output";
+  std::filesystem::create_directories(output_dir);
+  std::filesystem::current_path(output_dir);
 }

@@ -282,8 +282,14 @@ public:
     // Function that given a point (x,y,z) returns p0 (initial pressure)
     std::function<REAL(const TPZVec<REAL> &)> fP0Func;
 
+    // File containing an initial Darcy solution vector
+    std::string fSol0FileName = "";
+
     // Function that given a point (x,y,z) returns s0 (initial saturation)
     std::function<REAL(const TPZVec<REAL> &)> fS0Func;
+
+    // File containing an initial Transport solution vector
+    std::string fS0FileName = "";
 
     // Function that given a point (x,y,z) returns permeability
     std::function<REAL(const TPZVec<REAL> &)> fKappaFunc;
@@ -303,7 +309,10 @@ public:
     /** @brief Copy constructor */
     TReservoirProperties(const TReservoirProperties &other) {
       fPorosityAndPermeability = other.fPorosityAndPermeability;
+      fP0Func = other.fP0Func;
+      fSol0FileName = other.fSol0FileName;
       fS0Func = other.fS0Func;
+      fS0FileName = other.fS0FileName;
       fKappaFunc = other.fKappaFunc;
       fPorosityFunc = other.fPorosityFunc;
     }
@@ -311,7 +320,10 @@ public:
     /** @brief Copy assignment operator*/
     TReservoirProperties &operator=(const TReservoirProperties &other) {
       fPorosityAndPermeability = other.fPorosityAndPermeability;
+      fP0Func = other.fP0Func;
+      fSol0FileName = other.fSol0FileName;
       fS0Func = other.fS0Func;
+      fS0FileName = other.fS0FileName;
       fKappaFunc = other.fKappaFunc;
       fPorosityFunc = other.fPorosityFunc;
       return *this;

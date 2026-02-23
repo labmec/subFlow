@@ -83,6 +83,12 @@ public:
   /// SetInitialSaturation
   void SetInitialSaturation();
 
+  /// Set the initial saturation from s0 function
+  void SetInitialSaturationFromFunc();
+
+  /// Set the initial saturation from an input file
+  void SetInitialSaturationFromFile(const std::string &fileName);
+
   /// Update the last state variables (saturation and pressure)
   void SetLastStateVariables();
   void SetLastStateSaturation();

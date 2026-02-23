@@ -66,5 +66,8 @@ public:
   /// Render a vtk file with requested variables for a time step
   void PostProcessTimeStep(const int type, const int dim, int step = -1);
 
+  /// Save final Darcy and Transport solutions to disk to it can be used as initial condition for a restart simulation
+  void SaveSolution();
+
   void UpdateLastStateVariables();
 };

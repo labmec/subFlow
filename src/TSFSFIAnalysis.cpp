@@ -103,8 +103,7 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
     fTransportAnalysis.fAlgebraicTransport.CheckMassBalance(time, out);
   }
   out << "-------------------- Simulation Finished --------------------" << std::endl;
-  std::ofstream darcy_sol("darcy_solution.txt");
-  fDarcyAnalysis.Mesh()->Print(darcy_sol);
+  SaveSolution();
 }
 
 void TSFSFIAnalysis::RunTimeStep(std::ostream &out) {
@@ -176,4 +175,14 @@ void TSFSFIAnalysis::TransferDarcyToTransport() {
 void TSFSFIAnalysis::UpdateLastStateVariables() {
   fTransportAnalysis.SetLastStateVariables();
   fDarcyAnalysis.SetLastStateVariables();
+}
+
+void TSFSFIAnalysis::SaveSolution() {
+  std::ofstream darcy_out("darcy-final-solution.txt");
+  auto& darcy_sol = fDarcyAnalysis.Mesh()->Solution();
+  darcy_sol.Print("Darcy final solution", darcy_out);
+
+  std::ofstream transport_out("transport-final-solution.txt");
+  auto& transport_sol = fTransportAnalysis.Solution();
+  transport_sol.Print("Transport final solution", transport_out);
 }

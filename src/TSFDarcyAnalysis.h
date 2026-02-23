@@ -73,6 +73,12 @@ public:
   /// Set the initial solution
   void SetInitialSolution();
 
+  /// Set the initial pressure from p0 function
+  void SetInitialSolutionFromFunc();
+
+  /// Set the initial solution from an input file (flux, pressure, distflux and avgpressure)
+  void SetInitialSolutionFromFile(const std::string &fileName);
+
   /// Remove equations related to Neumann BCs from the system
   /// This method is used to apply Neumann BCs without using BigNumbers
   void ApplyEquationFilter(std::set<int> &neumannMatids);
