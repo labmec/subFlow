@@ -1,6 +1,6 @@
 {
     "UseGMsh": true,
-    "MshFile": "radial-filtration.msh",
+    "MshFile": "module-gravity-segregation.msh",
     "Dimension": 2,
     "Domains": [
         {
@@ -23,8 +23,8 @@
         {
             "name": "diffuser",
             "matid": 3,
-            "type": 0, // imposed pressure
-            "value": 33000.0,
+            "type": 1, // imposed flux
+            "value": 0.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
@@ -32,7 +32,7 @@
         {
             "name": "lid",
             "matid": 4,
-            "type": 1, // imposed flux
+            "type": 0, // imposed pressure
             "value": 0.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
@@ -41,21 +41,21 @@
         {
             "name": "sandscreen",
             "matid": 5,
-            "type": 0, // imposed pressure
-            "value": 58000.0,
+            "type": 1, // imposed flux
+            "value": 0.0,
             "functionID": 0,
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
         }
     ],
     "Numerics": {
-        "AnalysisType": 1, //0: Coupled, 1: Darcy, 2: Transport
+        "AnalysisType": 2, //0: Coupled, 1: Darcy, 2: Transport
         "FluxOrder": 1,
-        "DeltaT": 1.0,
-        "NSteps": 1,
+        "DeltaT": 50.0,
+        "NSteps": 5000,
         "Gravity": [
             0.0,
-            0.0,
+            -9.81,
             0.0
         ],
         "IsAxisymmetric": true,
@@ -68,8 +68,8 @@
         "ResTolDarcy": 1.0e-6,
         "CorrTolDarcy": 1.0e-6,
         "MaxIterTransport": 10,
-        "ResTolTransport": 1.0e-6,
-        "CorrTolTransport": 1.0e-6
+        "ResTolTransport": 1.0e-9,
+        "CorrTolTransport": 1.0e-9
     },
     "FluidProperties": {
         "WaterDensity": 1000.0,
@@ -77,7 +77,7 @@
         "WaterCompressibility": 0.0,
         "GasDensity": 1.25,
         "GasViscosity": 1.8e-5,
-        "GasCompressibility": 1.0e-5,
+        "GasCompressibility": 0.0,
         "DensityModel": 0, // 0: Linear, 1: Exponential
         "ReferencePressure": 0.0
     },
@@ -89,7 +89,7 @@
     "ReservoirProperties": {
         "s0": {
             "functionType": 1, //constant saturation at t=0
-            "value": 1.0 //water saturation at t=0. 
+            "value": 0.8 //water saturation at t=0. 
         },
         "p0": {
             "functionType": 0, //constant pressure at t=0

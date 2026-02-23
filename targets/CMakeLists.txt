@@ -18,3 +18,6 @@ target_link_libraries(radial-filtration-3d PRIVATE subFlow_lib)
 
 add_executable(three-layers three-layers.cpp)
 target_link_libraries(three-layers PRIVATE subFlow_lib)
+
+add_executable(module-gravity-segregation module-gravity-segregation.cpp)
+target_link_libraries(module-gravity-segregation PRIVATE subFlow_lib)
