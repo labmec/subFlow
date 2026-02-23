@@ -1023,6 +1023,26 @@ void TSFDataTransfer::InitializeAlgebraicTransport(TSFAlgebraicTransport &transp
       std::pair<int, int> lr = face_it.fLeftRightVolIndex;
       InterfaceVec.fLeftRightVolIndex.push_back(lr);
       InterfaceVec.fcelindex.push_back(face_it.fCelIndex);
+      REAL volume = gel->Volume();
+      if (transport.fCellsData.fSimData->fTNumerics.fIsAxisymmetric) {
+        REAL rmin = std::numeric_limits<REAL>::max();
+        REAL rmax = std::numeric_limits<REAL>::min();
+        for (int ic = 0; ic < ncorner; ic++) {
+          REAL x = gel->NodePtr(ic)->Coord(0);
+          if (fabs(x) < rmin) rmin = x;
+          if (fabs(x) > rmax) rmax = x;
+        }
+        if (rmin * rmax < 0.0) DebugStop();
+        if (std::abs(rmax - rmin < 1.e-10)) {
+          // this interface element is aligned with the axial direction.
+          // In this case the volume is the area of the face times 2*pi*r.
+          // r = rmin = rmax
+          volume *= 2.0 * M_PI * rmin;
+        } else {
+          volume = M_PI * (rmax * rmax - rmin * rmin);
+        }
+      }
+      InterfaceVec.fArea.push_back(volume);
 
       std::pair<int, int> lrgel = face_it.fLeftRightGelIndex;
       InterfaceVec.fLeftRightGelIndex.push_back(lrgel);

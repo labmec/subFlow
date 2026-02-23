@@ -33,8 +33,10 @@ public:
     std::vector<REAL> fFluxSign;
     // Direction of the normal to the face
     std::vector<std::tuple<REAL, REAL, REAL>> fNormalFaceDirection;
+    // Area of the face
+    std::vector<REAL> fArea;
 
-    TInterfaceData() : fMatid(0), fcelindex(0), fCoefficientsFlux(0), fIntegralFluxFunctions(0), fLeftRightVolIndex(0), fIntegralFlux(0), fFluxSign(0), fNormalFaceDirection(0), fLeftRightGelIndex(0) {
+    TInterfaceData() : fMatid(0), fcelindex(0), fCoefficientsFlux(0), fIntegralFluxFunctions(0), fLeftRightVolIndex(0), fIntegralFlux(0), fFluxSign(0), fNormalFaceDirection(0), fLeftRightGelIndex(0), fArea(0) {
     }
 
     TInterfaceData(const TInterfaceData &copy) = default;

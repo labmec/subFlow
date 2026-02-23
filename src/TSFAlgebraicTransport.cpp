@@ -57,6 +57,7 @@ void TSFAlgebraicTransport::TInterfaceData::Print(std::ostream &out) {
     out << std::get<1>(fNormalFaceDirection[iinter]) << " ";
     out << std::get<2>(fNormalFaceDirection[iinter]) << " ";
     out << std::endl;
+    out << "Area: " << fArea[iinter] << std::endl;
   }
 }
 
@@ -298,6 +299,7 @@ void TSFAlgebraicTransport::ContributeInterface(int interfaceId, int interfaceMa
   ek(1, 1) = -1.0 * dfwSw_R * (1.0 - beta) * fluxint * dt;
 
   // IHU matrix
+  REAL area = fInterfaceData[interfaceMatId].fArea[interfaceId];
   REAL rhow_L = fCellsData.fDensityWater[lr_index.first];
   REAL rhow_R = fCellsData.fDensityWater[lr_index.second];
   REAL rhog_L = fCellsData.fDensityGas[lr_index.first];
@@ -334,13 +336,13 @@ void TSFAlgebraicTransport::ContributeInterface(int interfaceId, int interfaceMa
   REAL dflambdaStar_dswL = beta * dlambda_L;
   REAL dflambdaStar_dswR = (1.0 - beta) * dlambda_R;
 
-  ef(0) += -fstar * lambda_star * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt;
-  ef(1) += +fstar * lambda_star * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt;
+  ef(0) += -fstar * lambda_star * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt * area;
+  ef(1) += +fstar * lambda_star * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt * area;
 
-  ek(0, 0) += (dfstar_dswL * lambda_star + fstar * dflambdaStar_dswL) * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt;
-  ek(0, 1) += (dfstar_dswR * lambda_star + fstar * dflambdaStar_dswR) * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt;
-  ek(1, 0) += -(dfstar_dswL * lambda_star + fstar * dflambdaStar_dswL) * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt;
-  ek(1, 1) += -(dfstar_dswR * lambda_star + fstar * dflambdaStar_dswR) * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt;
+  ek(0, 0) += (dfstar_dswL * lambda_star + fstar * dflambdaStar_dswL) * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt * area;
+  ek(0, 1) += (dfstar_dswR * lambda_star + fstar * dflambdaStar_dswR) * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt * area;
+  ek(1, 0) += -(dfstar_dswL * lambda_star + fstar * dflambdaStar_dswL) * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt * area;
+  ek(1, 1) += -(dfstar_dswR * lambda_star + fstar * dflambdaStar_dswR) * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt * area;
 }
 
 void TSFAlgebraicTransport::ContributeInterfaceResidual(int interfaceId, int interfaceMatId, TPZFMatrix<REAL> &ef) {
@@ -361,6 +363,7 @@ void TSFAlgebraicTransport::ContributeInterfaceResidual(int interfaceId, int int
   ef(1) = +1.0 * (beta * fw_L + (1.0 - beta) * fw_R) * fluxint * dt;
 
   // IHU
+  REAL area = fInterfaceData[interfaceMatId].fArea[interfaceId];
   REAL rhow_L = fCellsData.fDensityWater[lr_index.first];
   REAL rhow_R = fCellsData.fDensityWater[lr_index.second];
   REAL rhog_L = fCellsData.fDensityGas[lr_index.first];
@@ -389,8 +392,8 @@ void TSFAlgebraicTransport::ContributeInterfaceResidual(int interfaceId, int int
   REAL fstar = beta * fw_L * fg_R + (1.0 - beta) * fw_R * fg_L;
   REAL lambda_star = beta * lambda_L + (1.0 - beta) * lambda_R;
 
-  ef(0) += -fstar * lambda_star * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt;
-  ef(1) += +fstar * lambda_star * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt;
+  ef(0) += -fstar * lambda_star * kappa_dot_g_dot_n * (rhow_L - rhog_L) * dt * area;
+  ef(1) += +fstar * lambda_star * kappa_dot_g_dot_n * (rhow_R - rhog_R) * dt * area;
 }
 
 void TSFAlgebraicTransport::ContributeBC(int bcId, int bcMatId, TPZFMatrix<REAL> &ek, TPZFMatrix<REAL> &ef) {

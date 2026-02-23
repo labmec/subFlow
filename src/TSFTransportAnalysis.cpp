@@ -119,7 +119,7 @@ void TSFTransportAnalysis::RunTimeStep(std::ostream &out) {
       }
     }
     Solve();
-    TPZFMatrix<STATE>& dsol = Solution();
+    TPZFMatrix<STATE> &dsol = Solution();
     corr_norm = Norm(dsol);
     sol += dsol;
     SetNearZeroEntriesToZero(sol);
@@ -223,10 +223,6 @@ void TSFTransportAnalysis::Assemble() {
   std::set<int> bc_matids;
   for (auto it = fAlgebraicTransport.fboundaryCMatVal.begin(); it != fAlgebraicTransport.fboundaryCMatVal.end(); it++) {
     bc_matids.insert(it->first);
-  }
-  int64_t n_inout_faces = 0;
-  for (auto it = bc_matids.begin(); it != bc_matids.end(); it++) {
-    n_inout_faces += fAlgebraicTransport.fInterfaceData[*it].fFluxSign.size();
   }
 
   for (auto it = bc_matids.begin(); it != bc_matids.end(); it++) {
