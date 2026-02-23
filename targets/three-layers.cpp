@@ -1,4 +1,3 @@
-
 #include "DarcyFlow/TPZDarcyFlow.h"
 #include "DarcyFlow/TPZMixedDarcyFlow.h"
 #include "TPZAnalyticSolution.h"
@@ -37,39 +36,26 @@ int main(int argc, char *const argv[]) {
 #endif
 
   // Initial geometric mesh
-  bool isNL = true; // Non-linear flag
   TSFProblemData simData;
   simData.ReadJSONFile("three-layers.json");
   TPZGeoMesh *gmesh = ReadMeshFromGmsh(simData);
-  {
-    std::ofstream out("gmesh-before-interfaces.vtk");
-    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, out);
-  }
 
+  // Create computational meshes
   TSFApproxCreator approxCreator(gmesh);
   approxCreator.SetProblemData(&simData);
   approxCreator.ConfigureDarcySpace();
   approxCreator.AddDarcyMaterials();
   TPZMultiphysicsCompMesh *darcy_cmesh = approxCreator.CreateApproximationSpace();
-  {
-    std::ofstream out("darcy-cmesh.vtk");
-    TPZVTKGeoMesh::PrintCMeshVTK(darcy_cmesh, out);
-    std::ofstream out2("darcy-cmesh.txt");
-    darcy_cmesh->Print(out2);
-  }
   approxCreator.BuildTransportCmesh();
   TPZCompMesh *transport_cmesh = approxCreator.GetTransportCmesh();
-  {
-    std::ofstream out("transport-cmesh.vtk");
-    TPZVTKGeoMesh::PrintCMeshVTK(transport_cmesh, out);
-  }
+  
+  // Run SFI analysis
   TSFSFIAnalysis SFIAnalysis(darcy_cmesh, transport_cmesh);
   SFIAnalysis.SetProblemData(&simData);
   SFIAnalysis.Initialize();
   SFIAnalysis.Run();
 
   delete transport_cmesh;
-
   delete darcy_cmesh;
   delete gmesh;
 

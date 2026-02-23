@@ -34,7 +34,7 @@
             "matid": 4,
             "type": 0, // imposed pressure
             "value": 100.0e3,
-            "functionID": 0,
+            "functionID": 2, // inferior saturated pressure (see TSFFunctionsGenerator.h)
             "ExternalSaturation": 0.0,
             "SaturationFunctionID": 0
         },
@@ -52,7 +52,7 @@
         "AnalysisType": 0, //0: Coupled, 1: Darcy, 2: Transport
         "FluxOrder": 1,
         "DeltaT": 0.01,
-        "NSteps": 1000,
+        "NSteps": 10000,
         "Gravity": [
             0.0,
             -10.0,
@@ -97,7 +97,7 @@
         }
     },
     "PostProcess": {
-        "PostProcessFrequency": 1,
+        "PostProcessFrequency": 10,
         "NThreads": 0,
         "VTKResolution": 0
     }
