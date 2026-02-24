@@ -37,7 +37,7 @@ int main(int argc, char *const argv[]) {
 
   // Initial geometric mesh
   TSFProblemData simData;
-  simData.ReadJSONFile("module-gravity-segregation.json");
+  simData.ReadJSONFile("module-radial-filtration.json");
   TPZGeoMesh *gmesh = ReadMeshFromGmsh(simData);
 
   // Create computational meshes

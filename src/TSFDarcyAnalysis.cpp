@@ -3,8 +3,8 @@
 //
 
 #include "TSFDarcyAnalysis.h"
-#include "TPZVTKGenerator.h"
 #include "TPZInterfaceEl.h"
+#include "TPZVTKGenerator.h"
 
 using namespace std;
 
