@@ -306,7 +306,7 @@ void TSFDarcyAnalysis::SetInitialSolutionFromFunc() {
 void TSFDarcyAnalysis::SetInitialSolutionFromFile(const std::string &fileName) {
   std::string inputFilePath = std::string(INPUTDIR) + "/" + fileName;
   std::ifstream in(inputFilePath);
-  
+
 #ifdef PZDEBUG
   if (!in.is_open()) {
     std::cout << "Could not open Darcy initial solution file: " << fileName << std::endl;
@@ -356,14 +356,16 @@ void TSFDarcyAnalysis::SetInitialSolutionFromFile(const std::string &fileName) {
   TPZFMatrix<STATE> &cmesh_sol = fCompMesh->Solution();
   const int64_t cmesh_neq = fCompMesh->NEquations();
 #ifdef PZDEBUG
-  if (ncols != 1 || nrows != cmesh_neq) {
-    std::cout << "Darcy initial solution size mismatch. File has (" << nrows << " x " << ncols << ") and cmesh requires (" << cmesh_neq << " x 1)." << std::endl;
+  if (ncols != cmesh_sol.Cols() || nrows != cmesh_sol.Rows()) {
+    std::cout << "Darcy initial solution size mismatch. File has (" << nrows << " x " << ncols << ") and cmesh requires (" << cmesh_sol.Rows() << " x " << cmesh_sol.Cols() << ")." << std::endl;
     DebugStop();
   }
 #endif
 
-  for (int64_t i = 0; i < cmesh_neq; i++) {
-    cmesh_sol.PutVal(i, 0, file_solution.GetVal(i, 0));
+  for (int64_t i = 0; i < nrows; i++) {
+    for (int64_t j = 0; j < ncols; j++) {
+      cmesh_sol.PutVal(i, j, file_solution.GetVal(i, j));
+    }
   }
 
   fCompMesh->TransferMultiphysicsSolution();
