@@ -121,7 +121,7 @@ void TSFTransportAnalysis::RunTimeStep(std::ostream &out) {
     Solve();
     TPZFMatrix<STATE> &dsol = Solution();
     corr_norm = Norm(dsol);
-    sol += dsol;
+    sol += dsol; 
     SetNearZeroEntriesToZero(sol);
     cmesh->LoadSolution(sol);
     fAlgebraicTransport.fCellsData.UpdateSaturations(sol);
@@ -274,7 +274,7 @@ void TSFTransportAnalysis::AssembleMass() {
     int64_t eqid = fAlgebraicTransport.fCellsData.fEqNumber[icell];
     TPZFNMatrix<1, REAL> ek(1, 1, 0.0), ef(1, 1, 0.0);
     fAlgebraicTransport.Contribute(icell, ek, ef);
-    fMassMatrix(icell, 0) = ek(0, 0);
+    fMassMatrix(eqid, 0) = ek(0, 0);
   }
 }
 
