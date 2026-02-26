@@ -34,42 +34,47 @@ void TSFTransportAnalysis::Initialize() {
   int n_threads = 0;
   matrix.SetNumThreads(n_threads);
   SetStructuralMatrix(matrix);
-  TPZStepSolver<REAL> step;
-  step.SetDirect(ELU);
-  SetSolver(step);
-  TPZLinearAnalysis::Assemble(); // to create the sparsity pattern of fStructMatrix
+  // TPZLinearAnalysis::Assemble(); // to create the sparsity pattern of fStructMatrix
 
   // Initialize fTransmissibilityMatrix with sparsity pattern from fStructMatrix
-  auto baseMatrix = fStructMatrix->Create();
+  fTransmissibilityMatrix = dynamic_cast<TPZFYsmpMatrix<REAL> *>(fStructMatrix->Create());
+  TPZStepSolver<REAL> step;
+  step.SetDirect(ELU);
+  step.SetMatrix(fTransmissibilityMatrix);
+  SetSolver(step);
 
-#ifdef PZ_USING_MKL
-  TPZFYsmpMatrixPardiso<REAL> *sparseMatrix = dynamic_cast<TPZFYsmpMatrixPardiso<REAL> *>(baseMatrix);
-#else
-  TPZFYsmpMatrix<REAL> *sparseMatrix = dynamic_cast<TPZFYsmpMatrix<REAL> *>(baseMatrix);
-#endif
+  int numloadcases = ComputeNumberofLoadCases();
+  int64_t sz = fCompMesh->NEquations();
+  TPZLinearAnalysis::fRhs.Redim(sz, numloadcases);
 
-#if PZDEBUG
-  if (!sparseMatrix) {
-    PZError << "ERROR: Could not cast matrix to TPZFYsmpMatrix" << std::endl;
-    DebugStop();
-  }
-#endif
+  // #ifdef PZ_USING_MKL
+  //   TPZFYsmpMatrixPardiso<REAL> *sparseMatrix = dynamic_cast<TPZFYsmpMatrixPardiso<REAL> *>(baseMatrix);
+  // #else
+  //   TPZFYsmpMatrix<REAL> *sparseMatrix = dynamic_cast<TPZFYsmpMatrix<REAL> *>(baseMatrix);
+  // #endif
 
-  // Extract sparsity pattern from base matrix
-  TPZVec<int64_t> IA, JA;
-  TPZVec<REAL> A;
-  sparseMatrix->GetData(IA, JA, A);
+  // #if PZDEBUG
+  //   if (!sparseMatrix) {
+  //     PZError << "ERROR: Could not cast matrix to TPZFYsmpMatrix" << std::endl;
+  //     DebugStop();
+  //   }
+  // #endif
 
-  // Create fTransmissibilityMatrix with same dimensions and sparsity pattern
-  int64_t neq = fCompMesh->NEquations();
-#ifdef PZ_USING_MKL
-  fTransmissibilityMatrix = new TPZFYsmpMatrixPardiso<REAL>(neq, neq);
-#else
-  fTransmissibilityMatrix = new TPZFYsmpMatrix<REAL>(neq, neq);
-#endif
+  //   // Extract sparsity pattern from base matrix
+  //   TPZVec<int64_t> IA, JA;
+  //   TPZVec<REAL> A;
+  //   sparseMatrix->GetData(IA, JA, A);
 
-  fTransmissibilityMatrix->SetData(std::move(IA), std::move(JA), std::move(A));
-  delete baseMatrix;
+  //   // Create fTransmissibilityMatrix with same dimensions and sparsity pattern
+  //   int64_t neq = fCompMesh->NEquations();
+  // #ifdef PZ_USING_MKL
+  //   fTransmissibilityMatrix = new TPZFYsmpMatrixPardiso<REAL>(neq, neq);
+  // #else
+  //   fTransmissibilityMatrix = new TPZFYsmpMatrix<REAL>(neq, neq);
+  // #endif
+
+  //   fTransmissibilityMatrix->SetData(std::move(IA), std::move(JA), std::move(A));
+  //   delete baseMatrix;
 
   std::cout << "Number of Transport equations: " << fCompMesh->NEquations() << std::endl;
   std::cout << "Number of Transport elements: " << fCompMesh->NElements() << std::endl;
@@ -121,7 +126,7 @@ void TSFTransportAnalysis::RunTimeStep(std::ostream &out) {
     Solve();
     TPZFMatrix<STATE> &dsol = Solution();
     corr_norm = Norm(dsol);
-    sol += dsol; 
+    sol += dsol;
     SetNearZeroEntriesToZero(sol);
     cmesh->LoadSolution(sol);
     fAlgebraicTransport.fCellsData.UpdateSaturations(sol);
@@ -172,11 +177,11 @@ void TSFTransportAnalysis::Assemble() {
   TPZFMatrix<STATE> &rhs = Rhs();
   rhs.Zero();
 
-  TPZVec<int64_t> IA, JA;
-  TPZVec<REAL> A;
+  int64_t *IA, *JA;
+  STATE *A;
   fTransmissibilityMatrix->GetData(IA, JA, A);
 
-  auto AddMatrixEntry = [&IA, &JA, &A](int64_t row, int64_t col, REAL value) {
+  auto AddMatrixEntry = [&IA, &JA, &A](int64_t row, int64_t col, STATE value) {
     // Find the position of (row, col) in the sparse matrix
     for (int64_t idx = IA[row]; idx < IA[row + 1]; idx++) {
       if (JA[idx] == col) {
@@ -190,7 +195,7 @@ void TSFTransportAnalysis::Assemble() {
   int64_t ncells = fAlgebraicTransport.fCellsData.fVolume.size();
   for (int64_t icell = 0; icell < ncells; icell++) {
     int64_t eqid = fAlgebraicTransport.fCellsData.fEqNumber[icell];
-    TPZFNMatrix<1, REAL> ef(1, 1, 0.0);
+    TPZFNMatrix<1, STATE> ef(1, 1, 0.0);
     fAlgebraicTransport.ContributeResidual(icell, ef);
     rhs(eqid) += ef(0, 0);
     AddMatrixEntry(eqid, eqid, fMassMatrix(eqid, 0));
@@ -206,8 +211,8 @@ void TSFTransportAnalysis::Assemble() {
     int64_t lefteq = fAlgebraicTransport.fCellsData.fEqNumber[left];
     int64_t righteq = fAlgebraicTransport.fCellsData.fEqNumber[right];
 
-    TPZFNMatrix<4, REAL> ek(2, 2, 0.0);
-    TPZFNMatrix<2, REAL> ef(2, 1, 0.0);
+    TPZFNMatrix<4, STATE> ek(2, 2, 0.0);
+    TPZFNMatrix<2, STATE> ef(2, 1, 0.0);
 
     fAlgebraicTransport.ContributeInterface(interface, interface_matid, ek, ef);
 
@@ -232,8 +237,8 @@ void TSFTransportAnalysis::Assemble() {
       int64_t left = lrindex.first;
       int64_t lefteq = fAlgebraicTransport.fCellsData.fEqNumber[left];
 
-      TPZFNMatrix<4, REAL> ek(1, 1, 0.0);
-      TPZFNMatrix<2, REAL> ef(1, 1, 0.0);
+      TPZFNMatrix<4, STATE> ek(1, 1, 0.0);
+      TPZFNMatrix<2, STATE> ef(1, 1, 0.0);
 
       fAlgebraicTransport.ContributeBC(ibc, *it, ek, ef);
 
@@ -241,25 +246,6 @@ void TSFTransportAnalysis::Assemble() {
       AddMatrixEntry(lefteq, lefteq, ek(0, 0));
     }
   }
-
-  fTransmissibilityMatrix->SetData(std::move(IA), std::move(JA), std::move(A));
-
-  // Set the IA, JA, A structure directly in the base matrix of fStructMatrix
-  auto baseMatrix = MatrixSolver<REAL>().Matrix();
-
-#ifdef PZ_USING_MKL
-  TPZFYsmpMatrixPardiso<REAL> *sparseMatrix = dynamic_cast<TPZFYsmpMatrixPardiso<REAL> *>(baseMatrix.operator->());
-#else
-  TPZFYsmpMatrix<REAL> *sparseMatrix = dynamic_cast<TPZFYsmpMatrix<REAL> *>(baseMatrix.operator->());
-#endif
-#ifdef PZDEBUG
-  if (!sparseMatrix) {
-    PZError << "ERROR: Could not cast matrix to TPZFYsmpMatrix" << std::endl;
-    DebugStop();
-  }
-#endif
-
-  sparseMatrix->CopyFrom(fTransmissibilityMatrix);
 
   auto total_time_ass = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time_ass).count() / 1000.;
   std::cout << "---------Time to assemble: " << total_time_ass << " seconds" << std::endl;

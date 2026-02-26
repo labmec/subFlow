@@ -31,12 +31,10 @@ public:
   int fKiteration = 0;
 
   bool fIsFirstAssemble = true;
-#ifdef PZ_USING_MKL
-  TPZFYsmpMatrixPardiso<REAL> *fTransmissibilityMatrix;
-#else
-  TPZFYsmpMatrix<REAL> *fTransmissibilityMatrix;
-#endif
-  TPZFMatrix<REAL> fMassMatrix;
+
+  TPZFYsmpMatrix<STATE> *fTransmissibilityMatrix;
+
+  TPZFMatrix<STATE> fMassMatrix;
 
   /// Default constructor
   TSFTransportAnalysis();
