@@ -723,6 +723,11 @@ public:
     int fPostProcessFrequency;
 
     /**
+     * @brief Frequency in time steps for writing restart solution files (0 disables periodic save)
+     */
+    int fSaveSolutionFrequency;
+
+    /**
      * @brief Contains the times at which post-processed data is printed
      */
     TPZStack<REAL, 100> fVecReportingTimes;
@@ -760,6 +765,7 @@ public:
       fScalnamesTransport.Push("Sg");
       fFileTimeStep = 0.0;
       fPostProcessFrequency = 1;
+      fSaveSolutionFrequency = 0;
       fVecReportingTimes.Resize(0);
       fProblemTypeInit = 0;
       fProblemType = 0;
@@ -783,6 +789,7 @@ public:
       fScalnamesTransport = other.fScalnamesTransport;
       fFileTimeStep = other.fFileTimeStep;
       fPostProcessFrequency = other.fPostProcessFrequency;
+      fSaveSolutionFrequency = other.fSaveSolutionFrequency;
       fVecReportingTimes = other.fVecReportingTimes;
       fProblemTypeInit = other.fProblemTypeInit;
       fProblemType = other.fProblemType;
@@ -805,6 +812,7 @@ public:
       fScalnamesTransport = other.fScalnamesTransport;
       fFileTimeStep = other.fFileTimeStep;
       fPostProcessFrequency = other.fPostProcessFrequency;
+      fSaveSolutionFrequency = other.fSaveSolutionFrequency;
       fVecReportingTimes = other.fVecReportingTimes;
       fProblemTypeInit = other.fProblemTypeInit;
       fProblemType = other.fProblemType;
@@ -827,6 +835,7 @@ public:
              fScalnamesTransport == other.fScalnamesTransport &&
              fFileTimeStep == other.fFileTimeStep &&
              fPostProcessFrequency == other.fPostProcessFrequency &&
+             fSaveSolutionFrequency == other.fSaveSolutionFrequency &&
              fVecReportingTimes == other.fVecReportingTimes &&
              fProblemTypeInit == other.fProblemTypeInit &&
              fProblemType == other.fProblemType &&
@@ -842,6 +851,7 @@ public:
       buf.Write(fScalnamesTransport);
       buf.Write(&fFileTimeStep);
       buf.Write(&fPostProcessFrequency);
+      buf.Write(&fSaveSolutionFrequency);
       buf.Write(fVecReportingTimes);
       buf.Write(&fProblemTypeInit);
       buf.Write(&fProblemType);
@@ -857,6 +867,7 @@ public:
       buf.Read(fScalnamesTransport);
       buf.Read(&fFileTimeStep);
       buf.Read(&fPostProcessFrequency);
+      buf.Read(&fSaveSolutionFrequency);
       buf.Read(fVecReportingTimes);
       buf.Read(&fProblemTypeInit);
       buf.Read(&fProblemType);
@@ -873,6 +884,7 @@ public:
       std::cout << fFileNameTransport << std::endl;
       std::cout << fFileTimeStep << std::endl;
       std::cout << fPostProcessFrequency << std::endl;
+      std::cout << fSaveSolutionFrequency << std::endl;
       std::cout << fVecReportingTimes << std::endl;
       std::cout << fProblemTypeInit << std::endl;
       std::cout << fProblemType << std::endl;

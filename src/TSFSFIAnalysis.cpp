@@ -49,14 +49,11 @@ void TSFSFIAnalysis::PostProcessTimeStep(const int type, const int dim, int step
   if (type == 0) { // Both
     fDarcyAnalysis.PostProcessTimeStep(dim, step);
     fTransportAnalysis.PostProcessTimeStep(dim, step);
-  }
-  else if (type == 1) { // Darcy
+  } else if (type == 1) { // Darcy
     fDarcyAnalysis.PostProcessTimeStep(dim, step);
-  }
-  else if (type == 2) { // Transport
+  } else if (type == 2) { // Transport
     fTransportAnalysis.PostProcessTimeStep(dim, step);
-  }
-  else {
+  } else {
     std::cout << "ERROR: Unknown problem type for post-processing: " << type << std::endl;
     DebugStop();
   }
@@ -129,6 +126,7 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
   fKiteration = 0;
   const int nsteps = fSimData->fTNumerics.fNSteps;
   const REAL dt = fSimData->fTNumerics.fDt;
+  const int saveSolutionFreq = fSimData->fTPostProcess.fSaveSolutionFrequency;
 
   // Instants where post-processing will be done
   TPZStack<REAL, 100> postProcessTimes = fSimData->fTPostProcess.fVecReportingTimes;
@@ -160,9 +158,14 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
     }
     // Check Mass Balance
     fTransportAnalysis.fAlgebraicTransport.CheckMassBalance(time, out);
+
+    if (saveSolutionFreq > 0 && (tstep % saveSolutionFreq == 0)) {
+      SaveSolution(tstep);
+    }
   }
+
   out << "-------------------- Simulation Finished --------------------" << std::endl;
-  SaveSolution();
+  SaveSolution(nsteps);
 }
 
 void TSFSFIAnalysis::RunTimeStep(std::ostream &out) {
@@ -236,12 +239,14 @@ void TSFSFIAnalysis::UpdateLastStateVariables() {
   fDarcyAnalysis.SetLastStateVariables();
 }
 
-void TSFSFIAnalysis::SaveSolution() {
-  std::ofstream darcy_out("darcy-final-solution.txt");
-  auto& darcy_sol = fDarcyAnalysis.Mesh()->Solution();
+void TSFSFIAnalysis::SaveSolution(int tstep) {
+  std::string darcyFileName = "darcy-solution-step-" + std::to_string(tstep) + ".txt";
+  std::ofstream darcy_out(darcyFileName);
+  auto &darcy_sol = fDarcyAnalysis.Mesh()->Solution();
   darcy_sol.Print("Darcy final solution", darcy_out);
 
-  std::ofstream transport_out("transport-final-solution.txt");
-  auto& transport_sol = fTransportAnalysis.Solution();
+  std::string transportFileName = "transport-solution-step-" + std::to_string(tstep) + ".txt";
+  std::ofstream transport_out(transportFileName);
+  auto &transport_sol = fTransportAnalysis.Solution();
   transport_sol.Print("Transport final solution", transport_out);
 }

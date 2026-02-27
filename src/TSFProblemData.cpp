@@ -451,6 +451,9 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     if (postprocess.find("PostProcessFrequency") != postprocess.end()) {
       fTPostProcess.fPostProcessFrequency = postprocess["PostProcessFrequency"];
     }
+    if (postprocess.find("SaveSolutionFrequency") != postprocess.end()) {
+      fTPostProcess.fSaveSolutionFrequency = postprocess["SaveSolutionFrequency"];
+    }
     if (postprocess.find("ProblemTypeInit") != postprocess.end()) {
       fTPostProcess.fProblemTypeInit = postprocess["ProblemTypeInit"];
     }
