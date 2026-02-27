@@ -156,6 +156,7 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
     } else if (time >= nextPostProcessTime - 1.0e-8) {
       PostProcessTimeStep(fSimData->fTPostProcess.fProblemType, dim, tstep);
       RegisterPostProcess(fSimData->fTPostProcess.fProblemType, time, tstep);
+      nextPostProcessTime = postProcessTimes[++pos];
     }
     // Check Mass Balance
     fTransportAnalysis.fAlgebraicTransport.CheckMassBalance(time, out);
