@@ -49,10 +49,10 @@
         }
     ],
     "Numerics": {
-        "AnalysisType": 2, //0: Coupled, 1: Darcy, 2: Transport
+        "AnalysisType": 0, //0: Coupled, 1: Darcy, 2: Transport
         "FluxOrder": 1,
-        "DeltaT": 50.0,
-        "NSteps": 5000,
+        "DeltaT": 10.0,
+        "NSteps": 3000,
         "Gravity": [
             0.0,
             -9.81,
@@ -61,15 +61,15 @@
         "IsAxisymmetric": true,
         "IsLinearTrace": false,
         "FourApproxSpaces": true,
-        "NThreadsDarcy": 0,
-        "MaxIterSFI": 1,
+        "NThreadsDarcy": 8,
+        "MaxIterSFI": 10,
         "TolSFI": 1.0e-6,
         "MaxIterDarcy": 10,
         "ResTolDarcy": 1.0e-6,
         "CorrTolDarcy": 1.0e-6,
         "MaxIterTransport": 10,
-        "ResTolTransport": 1.0e-9,
-        "CorrTolTransport": 1.0e-9
+        "ResTolTransport": 1.0e-6,
+        "CorrTolTransport": 1.0e-6
     },
     "FluidProperties": {
         "WaterDensity": 1000.0,
@@ -98,7 +98,8 @@
     },
     "PostProcess": {
         "PostProcessFrequency": 10,
-        "NThreads": 0,
-        "VTKResolution": 0
+        "NThreads": 8,
+        "VTKResolution": 0,
+        "SaveSolutionFrequency": 180 //every 30 minutes of simulation time
     }
 }
