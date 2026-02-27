@@ -237,8 +237,8 @@ void TSFDarcyAnalysis::SetInitialSolutionFromFunc() {
       int64_t firstEqLoc = pressure_cmesh->Block().Position(seqloc);
       int64_t firstEq = fCompMesh->Block().Position(seq);
       int blockSize = fCompMesh->Block().Size(seq);
-#ifdef PZDEBUG
       int blockSizeloc = pressure_cmesh->Block().Size(seqloc);
+#ifdef PZDEBUG
       if (blockSize != blockSizeloc) {
         DebugStop();
       }
@@ -281,8 +281,8 @@ void TSFDarcyAnalysis::SetInitialSolutionFromFunc() {
     int64_t firstEqLoc = avgpressure_cmesh->Block().Position(seqloc);
     int64_t firstEq = fCompMesh->Block().Position(seq);
     int blockSize = fCompMesh->Block().Size(seq);
-#ifdef PZDEBUG
     int blockSizeloc = avgpressure_cmesh->Block().Size(seqloc);
+#ifdef PZDEBUG
     if (blockSize != blockSizeloc) {
       DebugStop();
     }
