@@ -66,6 +66,62 @@ void TSFSFIAnalysis::PostProcessTimeStep(const int type, const int dim, int step
 }
 
 void TSFSFIAnalysis::Run(std::ostream &out) {
+  auto GetPlotBaseName = [](const std::string &fileName) {
+    const size_t dotPos = fileName.find('.');
+    if (dotPos == std::string::npos) {
+      return fileName;
+    }
+    return fileName.substr(0, dotPos);
+  };
+
+  auto WritePVD = [](const std::string &pvdFileName, const std::vector<std::pair<REAL, std::string>> &entries) {
+    std::ofstream outFile(pvdFileName);
+    outFile << "<?xml version=\"1.0\"?>\n";
+    outFile << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
+    outFile << "  <Collection>\n";
+    for (const auto &entry : entries) {
+      outFile << "    <DataSet timestep=\"" << entry.first << "\" group=\"\" part=\"0\" file=\"" << entry.second << "\"/>\n";
+    }
+    outFile << "  </Collection>\n";
+    outFile << "</VTKFile>\n";
+  };
+
+  auto WriteVTKSeries = [](const std::string &seriesFileName, const std::vector<std::pair<REAL, std::string>> &entries) {
+    std::ofstream outFile(seriesFileName);
+    outFile << "{\n";
+    outFile << "  \"file-series-version\": \"1.0\",\n";
+    outFile << "  \"files\": [\n";
+    for (size_t i = 0; i < entries.size(); i++) {
+      outFile << "    { \"name\": \"" << entries[i].second << "\", \"time\": " << entries[i].first << " }";
+      if (i + 1 < entries.size()) {
+        outFile << ",";
+      }
+      outFile << "\n";
+    }
+    outFile << "  ]\n";
+    outFile << "}\n";
+  };
+
+  const std::string darcyPlotBaseName = GetPlotBaseName(fSimData->fTPostProcess.fFileNameDarcy);
+  const std::string transportPlotBaseName = GetPlotBaseName(fSimData->fTPostProcess.fFileNameTransport);
+  std::vector<std::pair<REAL, std::string>> darcyPVDEntries;
+  darcyPVDEntries.reserve(fSimData->fTPostProcess.fVecReportingTimes.size() + 2);
+  std::vector<std::pair<REAL, std::string>> transportPVDEntries;
+  transportPVDEntries.reserve(fSimData->fTPostProcess.fVecReportingTimes.size() + 2);
+
+  auto RegisterPostProcess = [&](const int type, const REAL currentTime, const int step) {
+    if (type == 0 || type == 1) {
+      darcyPVDEntries.push_back({currentTime, darcyPlotBaseName + "." + std::to_string(step) + ".vtk"});
+      // WritePVD(darcyPlotBaseName + ".pvd", darcyPVDEntries);
+      WriteVTKSeries(darcyPlotBaseName + ".vtk.series", darcyPVDEntries);
+    }
+    if (type == 0 || type == 2) {
+      transportPVDEntries.push_back({currentTime, transportPlotBaseName + "." + std::to_string(step) + ".vtk"});
+      // WritePVD(transportPlotBaseName + ".pvd", transportPVDEntries);
+      WriteVTKSeries(transportPlotBaseName + ".vtk.series", transportPVDEntries);
+    }
+  };
+
   const int dim = fSimData->fTGeometry.fDimension;
   const int maxIter = fSimData->fTNumerics.fMaxIterSFI;
   const REAL tol = fSimData->fTNumerics.fTolSFI;
@@ -80,6 +136,7 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
   REAL nextPostProcessTime = postProcessTimes[0];
 
   PostProcessTimeStep(fSimData->fTPostProcess.fProblemTypeInit, dim, 0);
+  RegisterPostProcess(fSimData->fTPostProcess.fProblemTypeInit, time, 0);
 
   // Time stepping loop
   int pos = 0;
@@ -95,9 +152,10 @@ void TSFSFIAnalysis::Run(std::ostream &out) {
     // Post-processing
     if (tstep == 1) {
       PostProcessTimeStep(fSimData->fTPostProcess.fProblemTypeInit, dim, tstep);
+      RegisterPostProcess(fSimData->fTPostProcess.fProblemTypeInit, time, tstep);
     } else if (time >= nextPostProcessTime - 1.0e-8) {
       PostProcessTimeStep(fSimData->fTPostProcess.fProblemType, dim, tstep);
-      nextPostProcessTime = postProcessTimes[pos++];
+      RegisterPostProcess(fSimData->fTPostProcess.fProblemType, time, tstep);
     }
     // Check Mass Balance
     fTransportAnalysis.fAlgebraicTransport.CheckMassBalance(time, out);
