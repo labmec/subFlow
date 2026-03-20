@@ -24,9 +24,9 @@
             "name": "diffuser",
             "matid": 3,
             "type": 0, // imposed pressure
-            "value": 0.0,
+            "value": 14.7e3, // 14.7 [kPa]
             "functionID": 0,
-            "ExternalSaturation": 0.0,
+            "ExternalSaturation": 1.0,
             "SaturationFunctionID": 0
         },
         {
@@ -42,7 +42,7 @@
             "name": "sandscreen",
             "matid": 5,
             "type": 0, // imposed pressure
-            "value": 26.9e3, // [kPa]
+            "value": 26.9e3, // 26.9 [kPa]
             "functionID": 0,
             "ExternalSaturation": 1.0,
             "SaturationFunctionID": 0
@@ -51,11 +51,11 @@
     "Numerics": {
         "AnalysisType": 0, //0: Coupled, 1: Darcy, 2: Transport
         "FluxOrder": 1,
-        "DeltaT": 0.01,
-        "NSteps": 5000,
+        "DeltaT": 0.02,
+        "NSteps": 20000,
         "Gravity": [
             0.0,
-            0.0,
+            -9.81,
             0.0
         ],
         "IsAxisymmetric": true,
@@ -88,15 +88,16 @@
     },
     "ReservoirProperties": {
         "s0": {
-            "FileName": "module-radial-filtration-s0.txt"
+            "FileName": "transport-solution-step-180.txt"
         },
         "p0": {
-            "FileName": "module-radial-filtration-sol0.txt"
+            "FileName": "darcy-solution-step-180.txt"
         }
     },
     "PostProcess": {
         "PostProcessFrequency": 10,
-        "NThreads": 0,
-        "VTKResolution": 0
+        "NThreads": 8,
+        "VTKResolution": 0,
+        "SaveSolutionFrequency": 250 //every 30 minutes of simulation time
     }
 }

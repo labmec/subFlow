@@ -237,12 +237,13 @@ public:
     case EDarcyBCFunctionType::EInferiorSaturatedPressure: {
       // This function is a piece-wise function where the pressure decreases linearly from p0 to pf from t0 to tf,
       // and then remains constant at pf.
-      REAL p0 = 100.0e3;   // Initial pressure in Pa
-      REAL pf = 0.01 * p0; // Final pressure in Pa
-      REAL tf = 1.0;       // Time at which pressure reaches pf in seconds
-      return [p0, pf, tf](const TPZVec<REAL> &loc, TPZVec<REAL> &rhsVal, TPZFMatrix<REAL> &matVal) {
+      REAL p0 = 0.0;     // Initial pressure in Pa
+      REAL pf = -85.5e3; // Final pressure in Pa
+      REAL tf = 1.0;     // Time at which pressure reaches pf in seconds
+      REAL slope = (pf - p0) / tf;
+      return [p0, pf, tf, slope](const TPZVec<REAL> &loc, TPZVec<REAL> &rhsVal, TPZFMatrix<REAL> &matVal) {
         REAL t = loc[3]; // Assuming t = loc[3]
-        REAL p = (t < tf) ? p0 * (1.0 - 0.99 * t) : pf;
+        REAL p = (t < tf) ? p0 + (slope)*t : pf;
         rhsVal[0] = p;
       };
     } break;
