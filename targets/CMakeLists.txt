@@ -24,3 +24,6 @@ target_link_libraries(module-gravity-segregation PRIVATE subFlow_lib)
 
 add_executable(module-radial-filtration module-radial-filtration.cpp)
 target_link_libraries(module-radial-filtration PRIVATE subFlow_lib)
+
+add_executable(module-vacuum module-vacuum.cpp)
+target_link_libraries(module-vacuum PRIVATE subFlow_lib)
