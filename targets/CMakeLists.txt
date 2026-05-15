@@ -27,3 +27,6 @@ target_link_libraries(module-radial-filtration PRIVATE subFlow_lib)
 
 add_executable(module-vacuum module-vacuum.cpp)
 target_link_libraries(module-vacuum PRIVATE subFlow_lib)
+
+add_executable(test-carter-filtercake test-carter-filtercake.cpp)
+target_link_libraries(test-carter-filtercake PRIVATE subFlow_lib)

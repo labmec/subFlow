@@ -26,7 +26,7 @@ public:
   enum class EDarcyBCFunctionType { ENone = 0,
                                     EHydrostaticPressure = 1,
                                     EInferiorSaturatedPressure = 2,
-                                    ESuperiorSaturatedPressure = 3 };
+                                    ECarterFilterCake = 3 };
 
   enum class ETransportBCFunctionType { ENone = 0 };
 
@@ -247,7 +247,7 @@ public:
         rhsVal[0] = p;
       };
     } break;
-    case EDarcyBCFunctionType::ESuperiorSaturatedPressure: {
+    case EDarcyBCFunctionType::ECarterFilterCake: {
       // This function is a piece-wise function where the pressure increases linearly from p0 to pf from t0 to tf,
       // and then remains constant at pf.
       REAL p0 = 100.0;     // Initial pressure in Pa

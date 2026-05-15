@@ -1,4 +1,6 @@
 #include "TSFApproxCreator.h"
+#include "TPZNullMaterialCS.h"
+#include "pzcompelwithmem.h"
 
 TSFApproxCreator::TSFApproxCreator() : TPZHDivApproxCreator(), fSimData(nullptr), fTransportMesh(nullptr) {}
 
@@ -21,6 +23,7 @@ void TSFApproxCreator::ConfigureDarcySpace() {
     TPZHDivApproxCreator::IsRigidBodySpaces() = true;
   }
   TPZHDivApproxCreator::SetShouldCondense(false); // the static condensation will be done inside this class, using TPZFastCondensedElements
+  gSinglePointMemory = true;                      // this variable, declared in pzcompelwithmem.h, set a single memory value for a compel
 }
 
 void TSFApproxCreator::AddDarcyMaterials() {
@@ -43,6 +46,7 @@ void TSFApproxCreator::AddDarcyMaterials() {
     }
     matDarcy->SetGravity(gravity);
     TPZHDivApproxCreator::InsertMaterialObject(matDarcy);
+    fMaterialsWithoutMem.insert(matId);
   }
 
   std::map<int, std::pair<int, REAL>> &BCDarcyMatIdToTypeValue = fSimData->fTBoundaryConditions.fBCDarcyMatIdToTypeValue;
@@ -60,6 +64,11 @@ void TSFApproxCreator::AddDarcyMaterials() {
       bcond->SetForcingFunctionBC(functionBC, 2);
     }
     TPZHDivApproxCreator::InsertMaterialObject(bcond);
+    if (bcType == 2) { // Robin type BC related to the filter cake buildup, so memory is necessary
+      fMaterialsWithMem.insert(bcMatId);
+    } else {
+      fMaterialsWithoutMem.insert(bcMatId);
+    }
   }
 }
 
@@ -69,7 +78,7 @@ TPZMultiphysicsCompMesh *TSFApproxCreator::CreateApproximationSpace() {
   TPZManVector<TPZCompMesh *, 7> meshvec(numDarcyMeshes);
   TPZHDivApproxCreator::CreateAtomicMeshes(meshvec, lagmultilevel); // This method increments the lagmultilevel
   TPZMultiphysicsCompMesh *cmesh = nullptr;
-  TPZHDivApproxCreator::CreateMultiPhysicsMesh(meshvec, lagmultilevel, cmesh);
+  CreateMultiPhysicsMesh(meshvec, cmesh);
   cmesh->SetName("DarcyMultiPhysicsMesh");
   CondenseElements(cmesh, lagmultilevel - 1, true);
 
@@ -340,4 +349,42 @@ void TSFApproxCreator::CreateInterfaceElements() {
 
 TPZCompMesh *TSFApproxCreator::GetTransportCmesh() {
   return fTransportMesh;
+}
+
+void TSFApproxCreator::CreateMultiPhysicsMesh(TPZManVector<TPZCompMesh *, 7> &meshvec, TPZMultiphysicsCompMesh *&cmeshmulti) {
+  int dim = fGeoMesh->Dimension();
+  cmeshmulti = new TPZMultiphysicsCompMesh(fGeoMesh);
+  cmeshmulti->SetDefaultOrder(fDefaultPOrder);
+  cmeshmulti->SetDimModel(dim);
+
+  int nstate = 0;
+  for (std::pair<int, TPZMaterial *> matpair : fMaterialVec) {
+    TPZMaterial *mat = matpair.second;
+    TPZBndCondT<STATE> *bnd = dynamic_cast<TPZBndCondT<STATE> *>(mat);
+    if (!bnd) {
+      nstate = mat->NStateVariables();
+      cmeshmulti->InsertMaterialObject(mat);
+    } else {
+      cmeshmulti->InsertMaterialObject(bnd);
+    }
+  }
+
+  if (nstate < 1) DebugStop();
+
+  if (fHybridType != HybridizationType::ENone) {
+    auto *nullmatWrap = new TPZNullMaterialCS<>(fHybridizationData.fWrapMatId, dim - 1, nstate);
+    cmeshmulti->InsertMaterialObject(nullmatWrap);
+
+    auto *nullmatLag = new TPZNullMaterialCS<>(fHybridizationData.fLagrangeMatId, dim - 1, nstate);
+    cmeshmulti->InsertMaterialObject(nullmatLag);
+  }
+
+  TPZManVector<int> active(meshvec.size(), 1);
+  cmeshmulti->ApproxSpace().Style() = TPZCreateApproximationSpace::EMultiphysics;
+  cmeshmulti->BuildMultiphysicsSpaceWithMemory(active, meshvec, fMaterialsWithMem, fMaterialsWithoutMem);
+
+  if (fHybridType != HybridizationType::ENone) {
+    InsertInterfaceMaterialObjects(cmeshmulti);
+    AddInterfaceComputationalElements(cmeshmulti);
+  }
 }

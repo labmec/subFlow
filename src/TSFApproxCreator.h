@@ -38,8 +38,16 @@ public:
 
   TPZCompMesh *GetTransportCmesh();
 
+  void CreateMultiPhysicsMesh(TPZManVector<TPZCompMesh*,7>& meshvec, TPZMultiphysicsCompMesh*& cmeshmulti);
+
 protected:
   TSFProblemData *fSimData;
 
   TPZCompMesh *fTransportMesh;
+
+  /// Map of materials without memory
+  std::set<int> fMaterialsWithMem;
+
+  /// Map of materials with memory
+  std::set<int> fMaterialsWithoutMem;
 };
