@@ -437,6 +437,31 @@ void TSFProblemData::ReadJSONFile(std::string filename) {
     }
   }
 
+  // ------------------------ Filter Cakes Properties ------------------------
+  for (auto &filtercake : input["FilterCakeProperties"]) {
+    if (filtercake.find("matid") == filtercake.end()) DebugStop();
+    if (filtercake.find("Density") == filtercake.end()) DebugStop();
+    if (filtercake.find("MassConcentration") == filtercake.end()) DebugStop();
+    if (filtercake.find("Porosity") == filtercake.end()) DebugStop();
+    if (filtercake.find("ParticleDiameter") == filtercake.end()) DebugStop();
+    const int matid = filtercake["matid"];
+    const std::string name = filtercake["name"];
+    const REAL density = filtercake["Density"];
+    const REAL C = filtercake["MassConcentration"];
+    const REAL phi = filtercake["Porosity"];
+    const REAL particleDiameter = filtercake["ParticleDiameter"];
+    const REAL spurtLossTime = filtercake["SpurtLossTime"];
+    const REAL spurtLossVolume = filtercake["SpurtLossVolume"];
+
+    fTFilterCakeProperties.fCakeNameAndMatId[name] = matid;
+    fTFilterCakeProperties.fDensity[matid] = filtercake["Density"];
+    fTFilterCakeProperties.fC[matid] = filtercake["MassConcentration"];
+    fTFilterCakeProperties.fPorosity[matid] = filtercake["Porosity"];
+    fTFilterCakeProperties.fParticleDiameter[matid] = filtercake["ParticleDiameter"];
+    fTFilterCakeProperties.fSpurtLossTime[matid] = spurtLossTime;
+    fTFilterCakeProperties.fSpurtLossVolume[matid] = spurtLossVolume;
+  }
+
   // ------------------------ Post Processing ------------------------
   fTPostProcess.fFileNameDarcy = "postdarcy.vtk";
   fTPostProcess.fFileNameTransport = "posttransport.vtk";
