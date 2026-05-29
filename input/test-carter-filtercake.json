@@ -1,6 +1,6 @@
 {
     "UseGMsh": true,
-    "MshFile": "module.msh",
+    "MshFile": "test-carter-filtercake.msh",
     "Dimension": 2,
     "Domains": [
         {
@@ -41,7 +41,7 @@
         {
             "name": "sandscreen",
             "matid": 5,
-            "type": 2, // imposed pressure
+            "type": 0, // imposed pressure
             "value": 1.0, // 26.9 [kPa]
             "functionID": 0,
             "ExternalSaturation": 1.0,
@@ -51,8 +51,8 @@
     "Numerics": {
         "AnalysisType": 1, //0: Coupled, 1: Darcy, 2: Transport
         "FluxOrder": 1,
-        "DeltaT": 0.0025,
-        "NSteps": 400,
+        "DeltaT": 0.0001,
+        "NSteps": 10000,
         "Gravity": [
             0.0,
             0.0,
@@ -62,7 +62,7 @@
         "IsLinearTrace": false,
         "FourApproxSpaces": true,
         "NThreadsDarcy": 0,
-        "MaxIterSFI": 10,
+        "MaxIterSFI": 1,
         "TolSFI": 1.0e-6,
         "MaxIterDarcy": 10,
         "ResTolDarcy": 1.0e-6,
@@ -96,8 +96,20 @@
             "value": 0.0 //This variable plays different roles according to the functionType
         }
     },
+    "FilterCakeProperties": [
+        {
+            "name": "filtercake",
+            "matid": 6,
+            "Density": 1.0,
+            "MassConcentration": 1.0,
+            "Porosity": 0.1,
+            "ParticleDiameter": 1.0,
+            "SpurtLossTime": 0.0,
+            "SpurtLossVolume": 0.0
+        }
+    ],
     "PostProcess": {
-        "PostProcessFrequency": 1,
+        "PostProcessFrequency": 10,
         "NThreads": 8,
         "VTKResolution": 0,
         "SaveSolutionFrequency": 0

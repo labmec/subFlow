@@ -29,6 +29,8 @@ Physical Curve("lid", 4) = {3};
 //+
 Physical Curve("sandscreen", 5) = {4};
 //+
+Physical Curve("filtercake", 6) = {4};
+//+
 Physical Surface("dom", 1) = {1};
 //+
 Transfinite Surface {1};

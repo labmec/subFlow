@@ -37,6 +37,7 @@ void TSFSFIAnalysis::Initialize() {
   fDataTransfer.Initialize();
   fDataTransfer.InitializeAlgebraicTransport(fTransportAnalysis.fAlgebraicTransport);
   fDarcyAnalysis.SetInitialSolution();
+  fDarcyAnalysis.UpdateAccumulatedVolume();
   fTransportAnalysis.SetInitialSaturation();
   TransferTransportToDarcy();
   TransferDarcyToTransport();
@@ -212,6 +213,7 @@ void TSFSFIAnalysis::RunTimeStep(std::ostream &out) {
     }
   }
   UpdateLastStateVariables();
+  fDarcyAnalysis.UpdateAccumulatedVolume();
 }
 
 void TSFSFIAnalysis::TransferTransportToDarcy() {
