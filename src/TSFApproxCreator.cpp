@@ -63,12 +63,17 @@ void TSFApproxCreator::AddDarcyMaterials() {
       auto functionBC = BCDarcyMatIdToFunctionId[bcMatId].second;
       bcond->SetForcingFunctionBC(functionBC, 2);
     }
+    fMaterialsWithoutMem.insert(bcMatId);
     TPZHDivApproxCreator::InsertMaterialObject(bcond);
-    if (bcType == 2) { // Robin type BC related to the filter cake buildup, so memory is necessary
-      fMaterialsWithMem.insert(bcMatId);
-    } else {
-      fMaterialsWithoutMem.insert(bcMatId);
-    }
+  }
+
+  std::map<std::string, int> &cakeNameAndMatId = fSimData->fTFilterCakeProperties.fCakeNameAndMatId;
+  for (const auto &cakePair : cakeNameAndMatId) {
+    std::string name = cakePair.first;
+    int matId = cakePair.second;
+    TSFMatFilterCake<TSFFilterCakeMemory> *matFilterCake = new TSFMatFilterCake<TSFFilterCakeMemory>(matId, dim-1, fSimData);
+    TPZHDivApproxCreator::InsertMaterialObject(matFilterCake);
+    fMaterialsWithMem.insert(matId);
   }
 }
 
@@ -77,9 +82,20 @@ TPZMultiphysicsCompMesh *TSFApproxCreator::CreateApproximationSpace() {
   int numDarcyMeshes = TPZHDivApproxCreator::NumMeshes();
   TPZManVector<TPZCompMesh *, 7> meshvec(numDarcyMeshes);
   TPZHDivApproxCreator::CreateAtomicMeshes(meshvec, lagmultilevel); // This method increments the lagmultilevel
+  AddFilterCakeElements(meshvec,lagmultilevel);
+  {
+    std::ofstream out1("hdivmesh.txt");
+    meshvec[0]->ComputeNodElCon();
+    meshvec[0]->Print(out1);
+  }
   TPZMultiphysicsCompMesh *cmesh = nullptr;
   CreateMultiPhysicsMesh(meshvec, cmesh);
   cmesh->SetName("DarcyMultiPhysicsMesh");
+  {
+    std::ofstream out1("multiphysicsmesh.txt");
+    cmesh->ComputeNodElCon();
+    cmesh->Print(out1);
+  }
   CondenseElements(cmesh, lagmultilevel - 1, true);
 
   return cmesh;
@@ -387,4 +403,22 @@ void TSFApproxCreator::CreateMultiPhysicsMesh(TPZManVector<TPZCompMesh *, 7> &me
     InsertInterfaceMaterialObjects(cmeshmulti);
     AddInterfaceComputationalElements(cmeshmulti);
   }
+}
+
+void TSFApproxCreator::AddFilterCakeElements(TPZManVector<TPZCompMesh*,7>& meshvec, int lagmultilevel) {
+
+  //Adding the filter cake materials to the flux mesh
+  TPZCompMesh* cmesh = meshvec[0];
+  cmesh->LoadReferences();
+  int dim = fSimData->fTGeometry.fDimension;
+  std::map<std::string, int> &cakeNameAndMatId = fSimData->fTFilterCakeProperties.fCakeNameAndMatId;
+  for (const auto &cakePair : cakeNameAndMatId) {
+    std::string name = cakePair.first;
+    int matId = cakePair.second;
+    TPZNullMaterial<STATE> *nullmat = new TPZNullMaterial<>(matId,dim-1);
+    // TSFMatFilterCake<TSFFilterCakeMemory> *matFilterCake = new TSFMatFilterCake<TSFFilterCakeMemory>(matId, dim-1, fSimData);
+    cmesh->InsertMaterialObject(nullmat);
+  }
+  cmesh->SetAllCreateFunctionsHDiv();
+  cmesh->AutoBuild(fMaterialsWithMem);
 }

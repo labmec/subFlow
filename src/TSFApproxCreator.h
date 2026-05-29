@@ -5,8 +5,12 @@
 #include "TPZMultiphysicsCompMesh.h"
 #include "TPZVTKGeoMesh.h"
 #include "TSFMixedDarcy.h"
+#include "TSFMatFilterCake.h"
 #include "TSFProblemData.h"
 #include "TSFTransportMaterial.h"
+#include "TSFFilterCakeMemory.h"
+#include "TPZNullMaterial.h"
+#include "TPZNullMaterialCS.h"
 
 class TSFApproxCreator : public TPZHDivApproxCreator {
 public:
@@ -39,6 +43,8 @@ public:
   TPZCompMesh *GetTransportCmesh();
 
   void CreateMultiPhysicsMesh(TPZManVector<TPZCompMesh*,7>& meshvec, TPZMultiphysicsCompMesh*& cmeshmulti);
+
+  void AddFilterCakeElements(TPZManVector<TPZCompMesh*,7>& meshvec, int lagmultilevel);
 
 protected:
   TSFProblemData *fSimData;
