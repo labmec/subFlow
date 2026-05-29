@@ -202,14 +202,8 @@ void TSFMixedDarcy::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
     // }
     break;
 
-  case 2: // Robin condition to simulate a filtercake buildup
-    REAL invperm = 1.0; // This should be computed according to the accumulated
-    for (int i = 0; i < nPhiU; i++) {
-      ef(i, 0) += -v2 * phiU(i, 0) * weight;
-      for (int j = 0; j < nPhiU; j++) {
-        ek(i, j) += invperm * phiU(i, 0) * phiU(j, 0) * weight;
-      }
-    }
+  default:
+    DebugStop();
   }
 }
 
