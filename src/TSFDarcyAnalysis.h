@@ -8,6 +8,8 @@
 #include "TPZLinearAnalysis.h"
 #include "TPZMultiphysicsCompMesh.h"
 #include "TPZSSpStructMatrix.h"
+#include "TSFFilterCakeMemory.h"
+#include "TSFMatFilterCake.h"
 #include "TSFMixedDarcy.h"
 #include "TSFProblemData.h"
 #include "pzmultiphysicselement.h"
@@ -96,4 +98,7 @@ public:
 
   /// Sets the current time
   void SetTime(REAL time);
+
+  /// Update accumulated volume injected through the filter cake
+  void UpdateAccumulatedVolume();
 };

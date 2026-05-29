@@ -588,3 +588,55 @@ void TSFDarcyAnalysis::UpdateDensityAndCoefficients() {
     }
   }
 }
+
+void TSFDarcyAnalysis::UpdateAccumulatedVolume() {
+  TPZMultiphysicsCompMesh *cmesh = dynamic_cast<TPZMultiphysicsCompMesh *>(Mesh());
+  if (!cmesh)
+    DebugStop();
+  TPZFMatrix<STATE>& cmesh_sol = cmesh->Solution();
+
+  auto &cakeNameAndMatId = fSimData->fTFilterCakeProperties.fCakeNameAndMatId;
+  for (const auto &pair : cakeNameAndMatId) {
+    int matid = pair.second;
+    TPZMaterial *material = cmesh->FindMaterial(matid);
+    if (!material)
+      DebugStop();
+
+    auto *matWithMem = dynamic_cast<TPZMatWithMem<TSFFilterCakeMemory> *>(material);
+    if (!matWithMem)
+      DebugStop();
+
+    auto &memVector = matWithMem->GetMemory();
+    int nel = cmesh->NElements();
+    for (int iel = 0; iel < nel; iel++) {
+      TPZCompEl *cel = cmesh->Element(iel);
+      TPZGeoEl *gel = cel->Reference();
+      if (gel->MaterialId() != matid) continue;
+      if (!gel)
+        DebugStop();
+      TPZMultiphysicsElement *mfcel = dynamic_cast<TPZMultiphysicsElement *>(cel);
+      if (!mfcel)
+        DebugStop();
+      int nconnects = mfcel->NConnects();
+      if (nconnects != 1)
+        DebugStop(); //this is an hdivbound element so it should have only one connect
+      TPZManVector<int64_t> memindices;
+      cel->GetMemoryIndices(memindices); // must have the same indexes as gSinglePointMemory is set to 1
+      int64_t globalId = memindices[0];
+      TSFFilterCakeMemory& mem = memVector->operator[](globalId);
+      REAL vol = mem.GetAccumulatedVolume();
+
+      // computed the integrated flux for the current time step
+      TPZConnect& con = cel->Connect(0);
+      int64_t seq = con.SequenceNumber();
+      int64_t firstEq = cmesh->Block().Position(seq);
+      int64_t blockSize = cmesh->Block().Size(seq);
+      REAL integratedFlux = 0.0;
+      for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++) {
+        integratedFlux += cmesh_sol.GetVal(eq, 0);
+      }
+      vol -= integratedFlux * fSimData->fTNumerics.fDt; //negative sign is because the flux is defined as positive when going out of the domain
+      mem.SetAccumulatedVolume(vol);
+    }
+  }
+}
