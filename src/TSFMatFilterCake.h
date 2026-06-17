@@ -79,11 +79,11 @@ public:
   /// @brief @ brief Get the alpha parameter
   REAL GetAlpha() const { return fAlpha; }
 
-  /// @brief @ brief Set the Constant coefficient of the Carman-Kozeny equation (ParticleDiameter^2 * Porosity^3 / (180 * (1-Porosity)^2))
-  void SetCoef(REAL coef) { fCoef = coef; }
+  /// @brief @ brief Set the permeability according to the Carman-Kozeny equation
+  void SetPerm(REAL perm) { fPerm = perm; }
 
-  /// @brief @ brief Get the Constant coefficient of the Carman-Kozeny equation
-  REAL GetCoef() const { return fCoef; }
+  /// @brief @ brief Get the permeability according to the Carman-Kozeny equation
+  REAL GetPerm() const { return fPerm; }
 
   /// @brief Set the axisymmetry flag
   void SetAxisymmetry(bool IsAxisymmetric) { fIsAxisymmetric = IsAxisymmetric; }
@@ -95,6 +95,6 @@ protected:
   int fDimension;
   TSFProblemData *fSimData; // Simulation data
   REAL fAlpha;              // Coefficient related to the filter cake buildup, defined as alpha = C / (1-phi)rho
-  REAL fCoef;               // Constant part of the Carman-Kozeny equation
+  REAL fPerm;               // Permeability according to the Carman-Kozeny equation
   bool fIsAxisymmetric;     // Whether the problem is axisymmetric
 };

@@ -2,13 +2,13 @@
 #include "TSFFilterCakeMemory.h"
 
 template <class TMEM>
-TSFMatFilterCake<TMEM>::TSFMatFilterCake() : TPZRegisterClassId(&TSFMatFilterCake<TMEM>::ClassId), TBase(), fDimension(0), fSimData(nullptr), fAlpha(0.0), fCoef(0.0), fIsAxisymmetric(false) {}
+TSFMatFilterCake<TMEM>::TSFMatFilterCake() : TPZRegisterClassId(&TSFMatFilterCake<TMEM>::ClassId), TBase(), fDimension(0), fSimData(nullptr), fAlpha(0.0), fPerm(0.0), fIsAxisymmetric(false) {}
 
 template <class TMEM>
-TSFMatFilterCake<TMEM>::TSFMatFilterCake(int matid, int dimension) : TPZRegisterClassId(&TSFMatFilterCake<TMEM>::ClassId), TBase(matid), fDimension(dimension), fSimData(nullptr), fAlpha(0.0), fCoef(0.0), fIsAxisymmetric(false) {}
+TSFMatFilterCake<TMEM>::TSFMatFilterCake(int matid, int dimension) : TPZRegisterClassId(&TSFMatFilterCake<TMEM>::ClassId), TBase(matid), fDimension(dimension), fSimData(nullptr), fAlpha(0.0), fPerm(0.0), fIsAxisymmetric(false) {}
 
 template <class TMEM>
-TSFMatFilterCake<TMEM>::TSFMatFilterCake(int matid, int dimension, TSFProblemData *simData) : TPZRegisterClassId(&TSFMatFilterCake<TMEM>::ClassId), TBase(matid), fDimension(dimension), fSimData(simData), fAlpha(0.0), fCoef(0.0), fIsAxisymmetric(false) {
+TSFMatFilterCake<TMEM>::TSFMatFilterCake(int matid, int dimension, TSFProblemData *simData) : TPZRegisterClassId(&TSFMatFilterCake<TMEM>::ClassId), TBase(matid), fDimension(dimension), fSimData(simData), fAlpha(0.0), fPerm(0.0), fIsAxisymmetric(false) {
   if (!fSimData) DebugStop();
   fIsAxisymmetric = fSimData->fTNumerics.fIsAxisymmetric;
   REAL C = fSimData->fTFilterCakeProperties.fC[matid];
@@ -16,7 +16,7 @@ TSFMatFilterCake<TMEM>::TSFMatFilterCake(int matid, int dimension, TSFProblemDat
   REAL Density = fSimData->fTFilterCakeProperties.fDensity[matid];
   REAL ParticleDiameter = fSimData->fTFilterCakeProperties.fParticleDiameter[matid];
   fAlpha = C / ((1.0 - Porosity) * Density);
-  fCoef = (ParticleDiameter * ParticleDiameter) * Porosity * Porosity * Porosity / (180.0 * (1.0 - Porosity) * (1.0 - Porosity));
+  fPerm = (ParticleDiameter * ParticleDiameter) * Porosity * Porosity * Porosity / (180.0 * (1.0 - Porosity) * (1.0 - Porosity));
 }
 
 template <class TMEM>
@@ -24,7 +24,7 @@ TSFMatFilterCake<TMEM>::TSFMatFilterCake(const TSFMatFilterCake &other) : TPZReg
   fDimension = other.fDimension;
   fSimData = other.fSimData;
   fAlpha = other.fAlpha;
-  fCoef = other.fCoef;
+  fPerm = other.fPerm;
   fIsAxisymmetric = other.fIsAxisymmetric;
 }
 
@@ -34,7 +34,7 @@ TSFMatFilterCake<TMEM> &TSFMatFilterCake<TMEM>::operator=(const TSFMatFilterCake
   fDimension = other.fDimension;
   fSimData = other.fSimData;
   fAlpha = other.fAlpha;
-  fCoef = other.fCoef;
+  fPerm = other.fPerm;
   fIsAxisymmetric = other.fIsAxisymmetric;
   return *this;
 }
@@ -53,7 +53,7 @@ void TSFMatFilterCake<TMEM>::Print(std::ostream &out) const {
   out << "Material ID: " << TBase::Id() << std::endl;
   out << "Dimension: " << fDimension << std::endl;
   out << "Alpha (C / (1-phi)rho): " << fAlpha << std::endl;
-  out << "Coefficient (Carman-Kozeny): " << fCoef << std::endl;
+  out << "Permeability (Carman-Kozeny): " << fPerm << std::endl;
   out << "Axisymmetric: " << (fIsAxisymmetric ? "Yes" : "No") << std::endl;
 }
 
@@ -61,9 +61,7 @@ template <class TMEM>
 void TSFMatFilterCake<TMEM>::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef) {
   TMEM &memory = TPZMatWithMem<TMEM>::GetMemory()->operator[](0); // the same memory item is used for all integration points
   REAL accumulatedVolume = memory.GetAccumulatedVolume();
-  REAL thickness = accumulatedVolume / fAlpha;
-  REAL absperm = fCoef / thickness;
-  REAL invperm = fSimData->fTFluidProperties.fWaterViscosity * accumulatedVolume / (absperm * fAlpha);
+  REAL invperm = fSimData->fTFluidProperties.fWaterViscosity * accumulatedVolume / (fPerm * fAlpha);
 
   TPZFNMatrix<20, REAL> &phiU = datavec[0].phi;
   int nPhiU = phiU.Rows();

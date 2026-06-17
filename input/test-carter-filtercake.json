@@ -101,7 +101,7 @@
             "name": "filtercake",
             "matid": 6,
             "Density": 1.0,
-            "MassConcentration": 1.0,
+            "MassConcentration": 100000.0,
             "Porosity": 0.1,
             "ParticleDiameter": 1.0,
             "SpurtLossTime": 0.0,
