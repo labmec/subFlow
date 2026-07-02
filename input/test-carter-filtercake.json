@@ -6,7 +6,7 @@
         {
             "name": "dom",
             "matid": 1,
-            "K": 1.0,
+            "K": 2.0e-12, //[m^2] ~ 2000 mD
             "phi": 0.3
         }
     ],
@@ -42,7 +42,7 @@
             "name": "sandscreen",
             "matid": 5,
             "type": 0, // imposed pressure
-            "value": 1.0, // 26.9 [kPa]
+            "value": 1.0e6, // 1.0 [MPa]
             "functionID": 0,
             "ExternalSaturation": 1.0,
             "SaturationFunctionID": 0
@@ -52,7 +52,7 @@
         "AnalysisType": 1, //0: Coupled, 1: Darcy, 2: Transport
         "FluxOrder": 1,
         "DeltaT": 0.0001,
-        "NSteps": 10000,
+        "NSteps": 4000,
         "Gravity": [
             0.0,
             0.0,
@@ -72,11 +72,11 @@
         "CorrTolTransport": 1.0e-6
     },
     "FluidProperties": {
-        "WaterDensity": 1.0,
+        "WaterDensity": 1000.0,
         "WaterViscosity": 0.001,
         "WaterCompressibility": 0.0,
-        "GasDensity": 1.0,
-        "GasViscosity": 1.83e-5,
+        "GasDensity": 850.0,
+        "GasViscosity": 1.0e-1,
         "GasCompressibility": 0.0,
         "DensityModel": 0, // 0: Linear, 1: Exponential
         "ReferencePressure": 0.0
@@ -100,17 +100,17 @@
         {
             "name": "filtercake",
             "matid": 6,
-            "Density": 1.0,
-            "MassConcentration": 100000.0,
+            "Density": 1000.0,
+            "MassConcentration": 20.0,
             "Porosity": 0.1,
-            "ParticleDiameter": 1.0,
+            "ParticleDiameter": 1.0e-6,
             "SpurtLossTime": 0.0,
             "SpurtLossVolume": 0.0
         }
     ],
     "PostProcess": {
         "PostProcessFrequency": 10,
-        "NThreads": 8,
+        "NThreads": 0,
         "VTKResolution": 0,
         "SaveSolutionFrequency": 0
     }
