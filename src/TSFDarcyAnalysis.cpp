@@ -5,6 +5,7 @@
 #include "TSFDarcyAnalysis.h"
 #include "TPZInterfaceEl.h"
 #include "TPZVTKGenerator.h"
+#include <fstream>
 
 using namespace std;
 
@@ -121,6 +122,54 @@ void TSFDarcyAnalysis::PostProcessTimeStep(int dimToPost, int step) {
 
   auto total_time_pp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time_pp).count() / 1000.;
   cout << "Total time post process = " << total_time_pp << " seconds" << endl;
+
+  // Write analysis time, pressure and flux at point (0,0) to an append-only file
+  {
+    TPZGeoMesh *gmesh = Mesh()->Reference();
+    TPZVec<REAL> x(3, 0.0);
+    x[0] = 0.0;
+    x[1] = 0.0;
+    int dim = gmesh->Dimension();
+    TPZVec<REAL> qsi(dim, 0.0);
+    TPZGeoEl *geoEl = nullptr;
+
+    auto validGeoEl = [&](TPZGeoEl *gel) {
+      return gel && gel->Dimension() == dim && gel->MaterialId() == 1 && gel->Reference();
+    };
+
+    const REAL tol = 1.e-8;
+    for (auto gel : gmesh->ElementVec()) {
+      if (!gel || gel->Dimension() != dim || gel->MaterialId() != 1) continue;
+      TPZVec<REAL> localqsi(dim, 0.0);
+      if (gel->ComputeXInverse(x, localqsi, tol)) {
+        geoEl = gel;
+        qsi = localqsi;
+        break;
+      }
+    }
+
+    if (validGeoEl(geoEl)) {
+      TPZCompEl *compEl = geoEl->Reference();
+      TPZVec<STATE> fluxSol(3, 0.0);
+      TPZVec<STATE> pressureSol(1, 0.0);
+      compEl->Solution(qsi, 1, fluxSol);
+      compEl->Solution(qsi, 2, pressureSol);
+      std::string pointOutFile = plotfile + "_point_solution.txt";
+      std::ofstream out(pointOutFile, std::ios::app);
+      if (out.good()) {
+        out << fTime << " " << pressureSol[0] << " ";
+        out << fluxSol[0] << " " << fluxSol[1];
+        if (fluxSol.size() > 2) {
+          out << " " << fluxSol[2];
+        }
+        out << "\n";
+      } else {
+        std::cout << "Unable to open output file: " << pointOutFile << std::endl;
+      }
+    } else {
+      std::cout << "Unable to find a valid domain element with material 0 containing point (0,0) for point evaluation." << std::endl;
+    }
+  }
 }
 
 void TSFDarcyAnalysis::Assemble() {

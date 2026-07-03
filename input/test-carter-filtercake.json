@@ -42,7 +42,7 @@
             "name": "sandscreen",
             "matid": 5,
             "type": 0, // imposed pressure
-            "value": 1.0e6, // 1.0 [MPa]
+            "value": 26.0e3, // 1.0 [MPa]
             "functionID": 0,
             "ExternalSaturation": 1.0,
             "SaturationFunctionID": 0
@@ -109,7 +109,7 @@
         }
     ],
     "PostProcess": {
-        "PostProcessFrequency": 10,
+        "PostProcessFrequency": 1,
         "NThreads": 0,
         "VTKResolution": 0,
         "SaveSolutionFrequency": 0

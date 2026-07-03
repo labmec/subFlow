@@ -35,7 +35,7 @@ Physical Surface("dom", 1) = {1};
 //+
 Transfinite Surface {1};
 //+
-Transfinite Curve {4, 2} = 2 Using Progression 1;
+Transfinite Curve {4, 2} = 11 Using Progression 1;
 //+
 Transfinite Curve {3, 1} = 2 Using Progression 1;
 //+
