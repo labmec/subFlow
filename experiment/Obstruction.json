@@ -1,0 +1,44 @@
+{
+  "MeshName" : "darcy_quad4",
+  "MeshDirectory" : "/home/marina/programming/Stokes-Darcy-Research/VUGS/Targets/ObstructionDarcy/", 
+  "Simulation" : {
+    "ApproximationType" : 0, //H1: 0, Hdiv: 1
+    "ProblemType" : 0 //High Permeability: 0, Constant Pressure: 1
+  },
+  "PressurepOrder": 1,
+  "Dimension": 2,
+  "Resolution": 1,
+  "DomainData" : [
+    {
+      "Name" : "domain",
+      "matId" : 1,
+      "Permeability" : 0.1
+    }
+  ],
+  "BCs": [
+    {
+      "Name" : "p_in",
+      "matId" : 2,
+      "Type" : 0, //Dirichlet: 0, Neumann: 1
+      "Value" : 10.0
+    },
+    {
+      "Name" : "p_out",
+      "matId" : 3,
+      "Type" : 0, 
+      "Value" : 100.0
+    },
+    {
+      "Name" : "noflux",
+      "matId" : 4,
+      "Type" : 1, 
+      "Value" : 0.0
+    },
+    {
+      "Name" : "obstruct",
+      "matId" : 5,
+      "Type" : 1, 
+      "Value" : 0.0
+    }
+  ]
+}
