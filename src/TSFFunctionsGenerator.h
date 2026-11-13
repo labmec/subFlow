@@ -21,7 +21,8 @@ public:
                                EPiecewiseFunction = 2,
                                ECircleLevelSetFunction = 4,
                                ERandomCirclesFunction = 5,
-                               EThreeLayersFunction = 6 };
+                               EThreeLayersFunction = 6,
+                               EInvertedPiecewiseFunction = 7 };
 
   enum class EDarcyBCFunctionType { ENone = 0,
                                     EHydrostaticPressure = 1,
@@ -204,6 +205,19 @@ public:
           s = 0.0;
         } else {
           s = 1.0;
+        }
+        return s;
+      };
+    } break;
+    case ES0FunctionType::EInvertedPiecewiseFunction: {
+      REAL h = fVal;
+      return [h](const TPZVec<REAL> &pt) -> REAL {
+        REAL y, s;
+        y = pt[1];
+        if (y < h) {
+          s = 1.0;
+        } else {
+          s = 0.0;
         }
         return s;
       };
