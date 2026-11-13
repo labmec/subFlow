@@ -36,3 +36,6 @@ target_link_libraries(module-deep-filtration PRIVATE subFlow_lib)
 
 add_executable(module-obstructed-sandscreen module-obstructed-sandscreen.cpp)
 target_link_libraries(module-obstructed-sandscreen PRIVATE subFlow_lib)
+
+add_executable(module-obstructed-sandscreen2 module-obstructed-sandscreen2.cpp)
+target_link_libraries(module-obstructed-sandscreen2 PRIVATE subFlow_lib)

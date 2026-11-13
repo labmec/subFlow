@@ -70,7 +70,7 @@
         "IsAxisymmetric": true,
         "IsLinearTrace": false,
         "FourApproxSpaces": true,
-        "NThreadsDarcy": 0,
+        "NThreadsDarcy": 8,
         "MaxIterSFI": 10,
         "TolSFI": 1.0e-6,
         "MaxIterDarcy": 10,
