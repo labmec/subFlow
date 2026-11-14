@@ -39,3 +39,6 @@ target_link_libraries(module-obstructed-sandscreen PRIVATE subFlow_lib)
 
 add_executable(module-obstructed-sandscreen2 module-obstructed-sandscreen2.cpp)
 target_link_libraries(module-obstructed-sandscreen2 PRIVATE subFlow_lib)
+
+add_executable(module-obstructed-sandscreen3 module-obstructed-sandscreen3.cpp)
+target_link_libraries(module-obstructed-sandscreen3 PRIVATE subFlow_lib)
