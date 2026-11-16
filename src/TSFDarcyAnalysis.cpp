@@ -5,6 +5,9 @@
 #include "TSFDarcyAnalysis.h"
 #include "TPZInterfaceEl.h"
 #include "TPZVTKGenerator.h"
+#if defined(PZ_USING_MUMPS) && !defined(PZ_USING_MKL)
+#include "TPZSSpStructMatrixMumps.h"
+#endif
 #include <fstream>
 
 using namespace std;
@@ -30,6 +33,8 @@ int TSFDarcyAnalysis::GetNumberOfIterations() {
 void TSFDarcyAnalysis::Initialize() {
 #ifdef PZ_USING_MKL
   TPZSSpStructMatrix<STATE> matrix(fCompMesh);
+#elif defined(PZ_USING_MUMPS)
+  TPZSSpStructMatrixMumps<STATE> matrix(fCompMesh);
 #else
   TPZSkylineStructMatrix<STATE> matrix(fCompMesh);
 #endif

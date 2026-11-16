@@ -11,6 +11,9 @@
 #include "TPZNullMaterial.h"
 #include "TPZRefPatternDataBase.h"
 #include "TPZSSpStructMatrix.h"
+#if defined(PZ_USING_MUMPS) && !defined(PZ_USING_MKL)
+#include "TPZSSpStructMatrixMumps.h"
+#endif
 #include "TPZVTKGenerator.h"
 #include "TPZVTKGeoMesh.h"
 #include "TSFDarcyAnalysis.h"
@@ -136,11 +139,11 @@ TPZMultiphysicsCompMesh *createCompMeshMixed(TPZGeoMesh *gmesh, int order, bool 
   const int dim = gmesh->Dimension();
 
   TPZHDivApproxCreator hdivCreator(gmesh);
-  hdivCreator.ProbType() = ProblemType::EDarcy;
+  hdivCreator.SetProbType(ProblemType::EDarcy);
   hdivCreator.SetDefaultOrder(order);
   if (simData->fTNumerics.fFourApproxSpaces) {
     hdivCreator.SetShouldCondense(true);
-    hdivCreator.IsRigidBodySpaces() = true;
+    hdivCreator.SetRigidBodySpaces(true);
   } else {
     hdivCreator.SetShouldCondense(false);
   }
@@ -292,6 +295,8 @@ void SolveLinear(int order, TPZGeoMesh *gmesh, TSFProblemData *simData) {
   TPZLinearAnalysis anMixed(cmeshMixed, RenumType::EMetis);
 #ifdef PZ_USING_MKL
   TPZSSpStructMatrix<STATE> matMixed(cmeshMixed);
+#elif defined(PZ_USING_MUMPS)
+  TPZSSpStructMatrixMumps<STATE> matMixed(cmeshMixed);
 #else
   TPZFStructMatrix<STATE> matMixed(cmeshMixed);
 #endif

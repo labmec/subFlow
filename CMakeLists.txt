@@ -36,4 +36,5 @@ set_target_properties(subFlow_lib PROPERTIES LINKER_LANGUAGE CXX)
 
 add_subdirectory(src)
 add_subdirectory(targets)
-add_subdirectory(experiment)
+# ObstrucDarcy requires APIs outside the supported NeoPZ build.
+add_subdirectory(experiment EXCLUDE_FROM_ALL)

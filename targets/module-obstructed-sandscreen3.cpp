@@ -32,7 +32,7 @@ int main(int argc, char *const argv[]) {
 
 // Initialize logger
 #ifdef PZ_LOG
-  TPZLogger::InitializePZLOG("subFlow-log.cfg");
+  TPZLogger::InitializePZLOG();
 #endif
 
   // Initial geometric mesh

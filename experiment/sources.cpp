@@ -2,6 +2,9 @@
 #define SOURCES_H
 
 #include "sources.h"
+#if defined(PZ_USING_MUMPS) && !defined(PZ_USING_MKL)
+#include "TPZSSpStructMatrixMumps.h"
+#endif
 
 std::set<int> vugBcIds;
 std::set<int> vugIds;
@@ -428,6 +431,8 @@ void SetAnalysis(TPZLinearAnalysis* an, TPZCompMesh* cmesh, ReadJson inputData){
 
     #ifdef PZ_USING_MKL
     TPZSSpStructMatrix<STATE> matMixed(cmesh);
+    #elif defined(PZ_USING_MUMPS)
+    TPZSSpStructMatrixMumps<STATE> matMixed(cmesh);
     #else
     TPZFStructMatrix<STATE> matMixed(cmesh);
     #endif

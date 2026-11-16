@@ -17,10 +17,10 @@ TSFProblemData *TSFApproxCreator::GetProblemData() {
 }
 
 void TSFApproxCreator::ConfigureDarcySpace() {
-  TPZHDivApproxCreator::ProbType() = ProblemType::EDarcy;
+  TPZHDivApproxCreator::SetProbType(ProblemType::EDarcy);
   TPZHDivApproxCreator::SetDefaultOrder(fSimData->fTNumerics.fFluxOrder);
   if (fSimData->fTNumerics.fFourApproxSpaces) {
-    TPZHDivApproxCreator::IsRigidBodySpaces() = true;
+    TPZHDivApproxCreator::SetRigidBodySpaces(true);
   }
   TPZHDivApproxCreator::SetShouldCondense(false); // the static condensation will be done inside this class, using TPZFastCondensedElements
   gSinglePointMemory = true;                      // this variable, declared in pzcompelwithmem.h, set a single memory value for a compel

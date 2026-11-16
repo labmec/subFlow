@@ -9,6 +9,8 @@
 #ifdef PZ_USING_MKL
 #include "TPZSpStructMatrix.h"
 #include "TPZYSMPPardiso.h"
+#elif defined(PZ_USING_MUMPS)
+#include "TPZSpStructMatrixMumps.h"
 #else
 #include "TPZSkylineNSymStructMatrix.h"
 #endif

@@ -28,8 +28,10 @@ int TSFTransportAnalysis::GetNumberOfIterations() {
 void TSFTransportAnalysis::Initialize() {
 #ifdef PZ_USING_MKL
   TPZSpStructMatrix<STATE> matrix(fCompMesh);
+#elif defined(PZ_USING_MUMPS)
+  TPZSpStructMatrixMumps<STATE> matrix(fCompMesh);
 #else
-  TPZSkylineNSymStructMatrix<STATE> matrix(fCompMesh); // this will break. I'm waiting for MUMPS
+  TPZSkylineNSymStructMatrix<STATE> matrix(fCompMesh); // Transport assembly requires CSR storage.
 #endif
   int n_threads = 0;
   matrix.SetNumThreads(n_threads);
